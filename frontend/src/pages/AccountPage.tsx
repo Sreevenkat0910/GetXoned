@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { toast } from 'sonner@2.0.3';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { NavBar } from '../components/NavBar';
 import { Footer } from '../components/Footer';

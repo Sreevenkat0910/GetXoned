@@ -2,7 +2,7 @@ import React from 'react';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { NavBar } from '../components/NavBar';
 import { Footer } from '../components/Footer';
-import MasonryProductCard from '../components/MasonryProductCard';
+import { MasonryProductCard } from '../components/MasonryProductCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Package, TrendingUp, ChevronDown } from 'lucide-react';
 import { useEffect, useState } from 'react';

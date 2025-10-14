@@ -158,6 +158,6 @@ const MasonryProductCardComponent = ({
 };
 
 // Performance optimization: Prevent unnecessary re-renders
-export const MasonryProductCard = React.memo(MasonryProductCardComponent);
+export const MasonryProductCard = React.memo(MasonryProductCardComponent) as React.ComponentType<MasonryProductCardProps>;
 
 export default MasonryProductCard;
