@@ -100,4 +100,36 @@ const adminLogin = async (req, res) => {
 }
 
 
-export { loginUser, registerUser, adminLogin }
+// Route for creating user from Clerk (for cart functionality)
+const createOrGetUser = async (req, res) => {
+    try {
+        const { clerkUserId, email, name } = req.body;
+
+        if (!clerkUserId || !email) {
+            return res.json({ success: false, message: "Missing required fields" });
+        }
+
+        // Check if user already exists
+        let user = await userModel.findOne({ email });
+
+        if (!user) {
+            // Create new user with Clerk ID
+            const newUser = new userModel({
+                name: name || 'User',
+                email,
+                password: 'clerk_managed', // Placeholder since Clerk handles auth
+                clerkUserId // Store Clerk user ID for reference
+            });
+
+            user = await newUser.save();
+        }
+
+        res.json({ success: true, userId: user._id, user });
+
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+export { loginUser, registerUser, adminLogin, createOrGetUser }

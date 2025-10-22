@@ -12,6 +12,9 @@ import orderRouter from './routes/orderRoute.js'
 import uploadRouter from './routes/uploadRoute.js'
 import bannerRouter from './routes/bannerRoute.js'
 import dropRouter from './routes/dropRoute.js'
+import wishlistRouter from './routes/wishlistRoute.js'
+import searchRouter from './routes/searchRoute.js'
+import addressRouter from './routes/addressRoute.js'
 
 // App Config
 const app = express()
@@ -79,5 +82,8 @@ app.use('/api/order',orderRouter)
 app.use('/api/upload',uploadRouter)
 app.use('/api/banner',bannerRouter)
 app.use('/api/drop',dropRouter)
+app.use('/api/wishlist',wishlistRouter)
+app.use('/api/search',searchRouter)
+app.use('/api/address',addressRouter)
 
 app.listen(port, ()=> console.log('Server started on PORT : '+ port))

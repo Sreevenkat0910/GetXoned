@@ -1,49 +1,40 @@
-import { useState } from 'react';
-import { toast } from 'sonner@2.0.3';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { NavBar } from '../components/NavBar';
 import { Footer } from '../components/Footer';
 import { useCart } from '../components/CartContext';
+import { useAddress } from '../components/AddressContext';
+import { useAuth } from '@clerk/clerk-react';
+import { useAuth as useAuthContext } from '../components/AuthContext';
+import { useOrders } from '../components/OrderContext';
+import { AddressSelector } from '../components/AddressSelector';
 import { isValidEmail, isValidIndianPhone, isValidPincode } from '../utils/performance';
-import { Lock, CreditCard, Wallet, Building2, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Lock, CreditCard, Wallet, CheckCircle2, ArrowLeft, Loader2 } from 'lucide-react';
 import { Separator } from '../components/ui/separator';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
-import { Checkbox } from '../components/ui/checkbox';
+import { Button } from '../components/ui/button';
+
+// Declare Razorpay types
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 export function CheckoutPage() {
-  const { items: cartItems, subtotal: cartSubtotal } = useCart();
-  const [step, setStep] = useState<'details' | 'payment' | 'success'>('details');
+  const { items: cartItems, subtotal: cartSubtotal, clearCart, loading: cartLoading } = useCart();
+  const { addresses } = useAddress();
+  const { isSignedIn, userId, getToken } = useAuth();
+  const { login } = useAuthContext();
+  const { fetchOrders } = useOrders();
+  
+  const [step, setStep] = useState<'address' | 'payment' | 'success'>('address');
   const [paymentMethod, setPaymentMethod] = useState('razorpay');
-  const [sameAsShipping, setSameAsShipping] = useState(true);
-  const [saveInfo, setSaveInfo] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedAddress, setSelectedAddress] = useState<any>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [orderDetails, setOrderDetails] = useState<any>(null);
 
-  // Form data
-  const [shippingData, setShippingData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    apartment: '',
-    city: '',
-    state: '',
-    pincode: '',
-    country: 'India'
-  });
-
-  const [billingData, setBillingData] = useState({
-    firstName: '',
-    lastName: '',
-    address: '',
-    apartment: '',
-    city: '',
-    state: '',
-    pincode: ''
-  });
 
   // Calculate totals
   const subtotal = cartSubtotal;
@@ -51,107 +42,286 @@ export function CheckoutPage() {
   const tax = subtotal * 0.18;
   const total = subtotal + shipping + tax;
 
-  const handleShippingChange = (field: string, value: string) => {
-    setShippingData(prev => ({ ...prev, [field]: value }));
-  };
+  // Set default address on load
+  useEffect(() => {
+    if (addresses.length > 0 && !selectedAddress) {
+      const defaultAddress = addresses.find(addr => addr.isDefault) || addresses[0];
+      setSelectedAddress(defaultAddress);
+    }
+  }, [addresses, selectedAddress]);
 
-  const handleBillingChange = (field: string, value: string) => {
-    setBillingData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const validateShipping = () => {
-    const newErrors: Record<string, string> = {};
+  const validateAddress = (address: any) => {
+    const errors: string[] = [];
     
-    if (!shippingData.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!shippingData.lastName.trim()) newErrors.lastName = 'Last name is required';
-    if (!shippingData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!isValidEmail(shippingData.email)) {
-      newErrors.email = 'Invalid email format';
+    if (!address.firstName?.trim()) errors.push('First name is required');
+    if (!address.lastName?.trim()) errors.push('Last name is required');
+    
+    if (!address.email?.trim()) {
+      errors.push('Email is required');
+    } else if (!isValidEmail(address.email)) {
+      errors.push('Please enter a valid email address');
     }
-    if (!shippingData.phone.trim()) {
-      newErrors.phone = 'Phone is required';
-    } else if (!isValidIndianPhone(shippingData.phone)) {
-      newErrors.phone = 'Invalid phone number';
+    
+    if (!address.phone?.trim()) {
+      errors.push('Phone number is required');
+    } else if (!isValidIndianPhone(address.phone)) {
+      errors.push('Please enter a valid 10-digit Indian phone number');
     }
-    if (!shippingData.address.trim()) newErrors.address = 'Address is required';
-    if (!shippingData.city.trim()) newErrors.city = 'City is required';
-    if (!shippingData.state.trim()) newErrors.state = 'State is required';
-    if (!shippingData.pincode.trim()) {
-      newErrors.pincode = 'Pincode is required';
-    } else if (!isValidPincode(shippingData.pincode)) {
-      newErrors.pincode = 'Invalid pincode';
+    
+    if (!address.address?.trim()) errors.push('Address is required');
+    if (!address.city?.trim()) errors.push('City is required');
+    if (!address.state?.trim()) errors.push('State is required');
+    
+    if (!address.pincode?.trim()) {
+      errors.push('Pincode is required');
+    } else if (!isValidPincode(address.pincode)) {
+      errors.push('Please enter a valid 6-digit pincode');
     }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    return errors.length > 0 ? errors : null;
   };
 
   const proceedToPayment = () => {
-    if (!validateShipping()) {
-      toast.error('Please fix the errors', {
-        description: 'Check all required fields and try again'
+    if (!selectedAddress) {
+      toast.error('Please select or add an address', {
+        description: 'You need to choose a shipping address to continue'
       });
       return;
     }
+
+    const validationErrors = validateAddress(selectedAddress);
+    
+    if (validationErrors) {
+      toast.error('Please fix the following errors:', {
+        description: validationErrors.join(', ')
+      });
+      return;
+    }
+
     setStep('payment');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleRazorpayPayment = () => {
-    // Initialize Razorpay (this is a mock - in production, you'd get the key from environment variables)
-    const options = {
-      key: 'YOUR_RAZORPAY_KEY_ID', // Replace with actual Razorpay key
-      amount: total * 100, // Amount in paise
-      currency: 'INR',
-      name: 'XONED',
-      description: 'Fashion Purchase',
-      image: '/logo.png', // Your logo
-      order_id: '', // This should come from your backend after creating an order
-      handler: function (response: any) {
-        // Payment success
-        console.log('Payment successful:', response);
-        setStep('success');
-      },
-      prefill: {
-        name: `${shippingData.firstName} ${shippingData.lastName}`,
-        email: shippingData.email,
-        contact: shippingData.phone
-      },
-      notes: {
-        address: shippingData.address
-      },
-      theme: {
-        color: '#D04007'
-      },
-      modal: {
-        ondismiss: function() {
-          toast.warning('Payment cancelled', {
-            description: 'You can try again when ready'
-          });
-        }
-      }
-    };
-
-    // In a real implementation, you would load Razorpay script dynamically
-    // const rzp = new window.Razorpay(options);
-    // rzp.open();
-    
-    // For demo purposes, we'll simulate success
-    setTimeout(() => {
-      setStep('success');
-    }, 1000);
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
   };
 
-  const placeOrder = () => {
-    if (paymentMethod === 'razorpay') {
-      handleRazorpayPayment();
-    } else if (paymentMethod === 'cod') {
-      // Cash on Delivery
-      setTimeout(() => {
-        setStep('success');
-      }, 1000);
+  const createRazorpayOrder = async () => {
+    try {
+      const token = await getToken();
+      const base = (window as any).VITE_API_URL || 'http://localhost:4000';
+
+      const currentAddress = selectedAddress;
+      
+      const response = await fetch(`${base}/api/order/razorpay`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId,
+          address: currentAddress,
+          subtotal,
+          shipping,
+          tax,
+          total
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create order');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to create order');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Create order error:', error);
+      throw error;
     }
+  };
+
+  const verifyPayment = async (paymentData: any) => {
+    try {
+      const token = await getToken();
+      const base = (window as any).VITE_API_URL || 'http://localhost:4000';
+
+      const response = await fetch(`${base}/api/order/verifyRazorpay`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId,
+          razorpay_order_id: paymentData.razorpay_order_id,
+          razorpay_payment_id: paymentData.razorpay_payment_id,
+          razorpay_signature: paymentData.razorpay_signature,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Payment verification failed');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      throw error;
+    }
+  };
+
+  const createSimulatedOrder = async () => {
+    try {
+      const token = await getToken();
+      const base = (window as any).VITE_API_URL || 'http://localhost:4000';
+
+      const response = await fetch(`${base}/api/order/simulate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId,
+          address: selectedAddress,
+          subtotal,
+          shipping,
+          tax,
+          total
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create order');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Simulated order creation error:', error);
+      throw error;
+    }
+  };
+
+  const handleSimulatedPayment = async () => {
+    if (!isSignedIn || !userId) {
+      toast.error('Please log in to place an order', {
+        action: {
+          label: 'Login',
+          onClick: () => login()
+        }
+      });
+      return;
+    }
+
+    setIsProcessingPayment(true);
+
+    try {
+      // Simulate payment processing delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Create order on backend with simulated payment
+      const orderData = await createSimulatedOrder();
+      
+      if (orderData.success) {
+        // Clear cart
+        clearCart();
+        
+        // Set order details for success page
+        setOrderDetails({
+          orderNumber: orderData.orderNumber,
+          orderId: orderData.orderId,
+          address: selectedAddress,
+          total,
+          subtotal,
+          shipping,
+          tax,
+          items: cartItems // Include cart items before clearing
+        });
+        
+        setStep('success');
+        toast.success('Payment successful!', {
+          description: 'Your order has been placed successfully'
+        });
+      } else {
+        throw new Error(orderData.message || 'Order creation failed');
+      }
+      
+    } catch (error) {
+      console.error('Payment simulation error:', error);
+      toast.error('Payment failed', {
+        description: error instanceof Error ? error.message : 'Something went wrong'
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const handleDirectOrder = async () => {
+    if (!selectedAddress) {
+      toast.error('Please select a shipping address');
+      return;
+    }
+
+    setIsProcessingPayment(true);
+
+    try {
+      // Create order directly without payment simulation
+      const orderData = await createSimulatedOrder();
+      
+      if (orderData.success) {
+        // Clear cart
+        clearCart();
+        
+        // Refresh orders to show the new order
+        await fetchOrders();
+        
+        // Set order details for success page
+        setOrderDetails({
+          orderNumber: orderData.orderNumber,
+          orderId: orderData.orderId,
+          address: selectedAddress,
+          total,
+          subtotal,
+          shipping,
+          tax,
+          items: cartItems // Include cart items before clearing
+        });
+        
+        setStep('success');
+        toast.success('Order placed successfully!', {
+          description: 'Thank you for your purchase'
+        });
+      } else {
+        toast.error('Failed to place order', {
+          description: orderData.message || 'Please try again'
+        });
+      }
+    } catch (error) {
+      console.error('Direct order error:', error);
+      toast.error('Order failed', {
+        description: 'Please try again'
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const placeOrder = async () => {
+    // Skip payment simulation and go directly to success page
+    await handleDirectOrder();
   };
 
   if (step === 'success') {
@@ -162,19 +332,24 @@ export function CheckoutPage() {
         
         <main className="pt-28 pb-16">
           <div className="max-w-[800px] mx-auto px-4 md:px-8 text-center">
-            <div className="mb-8">
-              <CheckCircle2 size={80} className="mx-auto mb-6 text-green-500" />
+            <div className="mb-8 animate-fade-in">
+              <div className="relative">
+                <CheckCircle2 size={80} className="mx-auto mb-6 text-green-500 animate-bounce" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-20 h-20 bg-green-500/20 rounded-full animate-ping"></div>
+                </div>
+              </div>
               <h1 
-                className="uppercase-headline mb-4"
+                className="uppercase-headline mb-4 animate-slide-up"
                 style={{ fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 700, letterSpacing: '0.1em' }}
               >
                 ORDER CONFIRMED
               </h1>
-              <p className="mb-2" style={{ fontSize: '15px', opacity: 0.85 }}>
+              <p className="mb-2 animate-slide-up" style={{ fontSize: '15px', opacity: 0.85 }}>
                 Thank you for your purchase!
               </p>
-              <p className="mb-8 opacity-70" style={{ fontSize: '13px' }}>
-                Order #XND-2024-{Math.floor(Math.random() * 10000)}
+              <p className="mb-8 opacity-70 animate-slide-up" style={{ fontSize: '13px' }}>
+                Order #{orderDetails?.orderNumber}
               </p>
             </div>
 
@@ -187,11 +362,26 @@ export function CheckoutPage() {
               </h2>
               
               <div className="space-y-3 mb-6">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex justify-between" style={{ fontSize: '13px' }}>
-                    <span className="opacity-80">
-                      {item.name} × {item.quantity}
+                {orderDetails?.items?.map((item: any) => (
+                  <div key={item.id} className="flex justify-between items-center" style={{ fontSize: '13px' }}>
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src={item.image || '/placeholder-product.jpg'} 
+                        alt={item.name}
+                        className="w-12 h-12 object-cover rounded-sm"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/placeholder-product.jpg';
+                        }}
+                      />
+                      <div>
+                        <span className="opacity-80 block">
+                          {item.name}
+                        </span>
+                        <span className="opacity-60 text-xs">
+                          Qty: {item.quantity}
                     </span>
+                      </div>
+                    </div>
                     <span>₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
                   </div>
                 ))}
@@ -202,15 +392,15 @@ export function CheckoutPage() {
               <div className="space-y-2 mb-4" style={{ fontSize: '13px' }}>
                 <div className="flex justify-between opacity-70">
                   <span>Subtotal</span>
-                  <span>₹{subtotal.toLocaleString('en-IN')}</span>
+                  <span>₹{orderDetails?.subtotal?.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between opacity-70">
                   <span>Shipping</span>
-                  <span>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span>
+                  <span>{orderDetails?.shipping === 0 ? 'FREE' : `₹${orderDetails?.shipping}`}</span>
                 </div>
                 <div className="flex justify-between opacity-70">
                   <span>Tax (GST 18%)</span>
-                  <span>₹{tax.toLocaleString('en-IN')}</span>
+                  <span>₹{orderDetails?.tax?.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
@@ -227,7 +417,7 @@ export function CheckoutPage() {
                   className="price-outlined"
                   style={{ fontSize: '24px' }}
                 >
-                  ₹{total.toLocaleString('en-IN')}
+                  ₹{orderDetails?.total?.toLocaleString('en-IN')}
                 </span>
               </div>
             </div>
@@ -240,37 +430,226 @@ export function CheckoutPage() {
                 SHIPPING ADDRESS
               </h3>
               <p style={{ fontSize: '13px', lineHeight: 1.7, opacity: 0.85 }}>
-                {shippingData.firstName} {shippingData.lastName}<br />
-                {shippingData.address}{shippingData.apartment && `, ${shippingData.apartment}`}<br />
-                {shippingData.city}, {shippingData.state} - {shippingData.pincode}<br />
-                {shippingData.phone}
+                {orderDetails?.address?.firstName} {orderDetails?.address?.lastName}<br />
+                {orderDetails?.address?.address}{orderDetails?.address?.apartment && `, ${orderDetails?.address?.apartment}`}<br />
+                {orderDetails?.address?.city}, {orderDetails?.address?.state} - {orderDetails?.address?.pincode}<br />
+                {orderDetails?.address?.phone}
               </p>
+            </div>
+
+            {/* Order Timeline */}
+            <div className="frosted-glass border border-white/30 rounded-sm p-6 mb-8">
+              <h3 
+                className="uppercase-headline mb-6"
+                style={{ fontSize: '14px', letterSpacing: '0.1em', fontWeight: 600 }}
+              >
+                ORDER TIMELINE
+              </h3>
+              
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <div>
+                    <p className="text-sm font-medium">Order Placed</p>
+                    <p className="text-xs opacity-70">Just now</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                  <div>
+                    <p className="text-sm opacity-70">Order Confirmed</p>
+                    <p className="text-xs opacity-50">Within 24 hours</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                  <div>
+                    <p className="text-sm opacity-70">Shipped</p>
+                    <p className="text-xs opacity-50">Within 2-3 business days</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                  <div>
+                    <p className="text-sm opacity-70">Delivered</p>
+                    <p className="text-xs opacity-50">5-7 business days</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-3">
               <p className="opacity-70" style={{ fontSize: '13px' }}>
-                A confirmation email has been sent to <strong>{shippingData.email}</strong>
+                A confirmation email has been sent to <strong>{orderDetails?.address?.email}</strong>
               </p>
               <p className="opacity-70" style={{ fontSize: '13px' }}>
-                Expected delivery: 5-7 business days
+                You can track your order status in your account dashboard
+              </p>
+              <p className="opacity-70" style={{ fontSize: '13px' }}>
+                For any queries, contact us at <strong>support@xoned.com</strong>
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-              <a
-                href="#account"
+              <button
+                onClick={() => window.location.hash = '#account/orders'}
                 className="px-8 py-4 bg-[#D04007] text-white uppercase-headline transition-all duration-300 hover:bg-[#ff6b1a] hover:scale-105"
                 style={{ fontSize: '11px', letterSpacing: '0.2em' }}
               >
                 VIEW ORDER STATUS
-              </a>
-              <a
-                href="#capsule"
+              </button>
+              <button
+                onClick={() => {
+                  // Simple receipt download functionality
+                  const receiptData = `
+ORDER RECEIPT - XONED
+Order Number: ${orderDetails?.orderNumber}
+Date: ${new Date().toLocaleDateString('en-IN')}
+
+ITEMS:
+${orderDetails?.items?.map((item: any) => 
+  `${item.name} × ${item.quantity} - ₹${(item.price * item.quantity).toLocaleString('en-IN')}`
+).join('\n')}
+
+SUBTOTAL: ₹${orderDetails?.subtotal?.toLocaleString('en-IN')}
+SHIPPING: ${orderDetails?.shipping === 0 ? 'FREE' : `₹${orderDetails?.shipping}`}
+TAX (GST 18%): ₹${orderDetails?.tax?.toLocaleString('en-IN')}
+TOTAL: ₹${orderDetails?.total?.toLocaleString('en-IN')}
+
+SHIPPING ADDRESS:
+${orderDetails?.address?.firstName} ${orderDetails?.address?.lastName}
+${orderDetails?.address?.address}${orderDetails?.address?.apartment ? `, ${orderDetails?.address?.apartment}` : ''}
+${orderDetails?.address?.city}, ${orderDetails?.address?.state} - ${orderDetails?.address?.pincode}
+Phone: ${orderDetails?.address?.phone}
+
+Thank you for shopping with XONED!
+                  `.trim();
+                  
+                  const blob = new Blob([receiptData], { type: 'text/plain' });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `receipt-${orderDetails?.orderNumber}.txt`;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+                  
+                  toast.success('Receipt downloaded successfully!');
+                }}
+                className="px-8 py-4 border border-[#262930]/20 rounded-sm uppercase-headline transition-colors duration-300 hover:border-[#D04007]"
+                style={{ fontSize: '11px', letterSpacing: '0.2em' }}
+              >
+                DOWNLOAD RECEIPT
+              </button>
+              <button
+                onClick={() => window.location.hash = '#capsule'}
                 className="px-8 py-4 border border-[#262930]/20 rounded-sm uppercase-headline transition-colors duration-300 hover:border-[#D04007]"
                 style={{ fontSize: '11px', letterSpacing: '0.2em' }}
               >
                 CONTINUE SHOPPING
-              </a>
+              </button>
+            </div>
+          </div>
+        </main>
+        
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="min-h-screen">
+        <AnnouncementBar />
+        <NavBar />
+        
+        <main className="pt-28 pb-16">
+          <div className="max-w-[600px] mx-auto px-4 md:px-8 text-center">
+            <div className="frosted-glass border border-white/30 rounded-sm p-8">
+              <Lock size={64} className="mx-auto mb-6 text-white/50" />
+              <h1 
+                className="uppercase-headline mb-4"
+                style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 700, letterSpacing: '0.1em' }}
+              >
+                SIGN IN REQUIRED
+              </h1>
+              <p className="mb-6 opacity-70" style={{ fontSize: '14px' }}>
+                Please sign in to proceed with checkout
+              </p>
+              <Button
+                onClick={() => login()}
+                className="bg-[#D04007] hover:bg-[#ff6b1a] text-white uppercase-headline"
+                style={{ fontSize: '12px', letterSpacing: '0.1em' }}
+              >
+                SIGN IN
+              </Button>
+            </div>
+          </div>
+        </main>
+        
+        <Footer />
+      </div>
+    );
+  }
+
+  // Show loading screen while cart is loading
+  if (cartLoading) {
+    return (
+      <div className="min-h-screen">
+        <AnnouncementBar />
+        <NavBar />
+        
+        <main className="pt-28 pb-16">
+          <div className="max-w-[600px] mx-auto px-4 md:px-8 text-center">
+            <div className="frosted-glass border border-white/30 rounded-sm p-8">
+              <Loader2 size={48} className="mx-auto mb-6 text-[#D04007] animate-spin" />
+              <h1 
+                className="uppercase-headline mb-4"
+                style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 700, letterSpacing: '0.1em' }}
+              >
+                LOADING CHECKOUT
+              </h1>
+              <p className="opacity-70" style={{ fontSize: '14px' }}>
+                Please wait while we prepare your order...
+              </p>
+            </div>
+          </div>
+        </main>
+        
+        <Footer />
+      </div>
+    );
+  }
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen">
+        <AnnouncementBar />
+        <NavBar />
+        
+        <main className="pt-28 pb-16">
+          <div className="max-w-[600px] mx-auto px-4 md:px-8 text-center">
+            <div className="frosted-glass border border-white/30 rounded-sm p-8">
+              <h1 
+                className="uppercase-headline mb-4"
+                style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 700, letterSpacing: '0.1em' }}
+              >
+                CART IS EMPTY
+              </h1>
+              <p className="mb-6 opacity-70" style={{ fontSize: '14px' }}>
+                Add some items to your cart before checkout
+              </p>
+              <Button
+                onClick={() => window.location.hash = '#capsule'}
+                className="bg-[#D04007] hover:bg-[#ff6b1a] text-white uppercase-headline"
+                style={{ fontSize: '12px', letterSpacing: '0.1em' }}
+              >
+                CONTINUE SHOPPING
+              </Button>
             </div>
           </div>
         </main>
@@ -289,14 +668,14 @@ export function CheckoutPage() {
         <div className="max-w-[1400px] mx-auto px-4 md:px-8">
           {/* Header */}
           <div className="mb-8">
-            <a
-              href="#cart"
+            <button
+              onClick={() => window.location.hash = '#cart'}
               className="inline-flex items-center gap-2 mb-4 opacity-70 hover:opacity-100 hover:text-[#D04007] transition-colors"
               style={{ fontSize: '12px', letterSpacing: '0.05em' }}
             >
               <ArrowLeft size={16} />
               BACK TO CART
-            </a>
+            </button>
             <h1 
               className="uppercase-headline mb-2"
               style={{ fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 700, letterSpacing: '0.1em' }}
@@ -304,11 +683,11 @@ export function CheckoutPage() {
               CHECKOUT
             </h1>
             <div className="flex items-center gap-4 mt-4">
-              <div className={`flex items-center gap-2 ${step === 'details' ? 'text-[#D04007]' : 'opacity-50'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${step === 'details' ? 'border-[#D04007]' : 'border-current'}`}>
+              <div className={`flex items-center gap-2 ${step === 'address' ? 'text-[#D04007]' : 'opacity-50'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${step === 'address' ? 'border-[#D04007]' : 'border-current'}`}>
                   1
                 </div>
-                <span style={{ fontSize: '11px', letterSpacing: '0.1em' }}>DETAILS</span>
+                <span style={{ fontSize: '11px', letterSpacing: '0.1em' }}>ADDRESS</span>
               </div>
               <div className="flex-1 h-px bg-white/30"></div>
               <div className={`flex items-center gap-2 ${step === 'payment' ? 'text-[#D04007]' : 'opacity-50'}`}>
@@ -323,151 +702,24 @@ export function CheckoutPage() {
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Checkout Form */}
             <div className="lg:col-span-2">
-              {step === 'details' && (
+              {step === 'address' && (
                 <div className="space-y-8">
-                  {/* Contact Information */}
-                  <div className="frosted-glass border border-white/30 rounded-sm p-6">
-                    <h2 
-                      className="uppercase-headline mb-6"
-                      style={{ fontSize: '16px', letterSpacing: '0.1em', fontWeight: 600 }}
-                    >
-                      CONTACT INFORMATION
-                    </h2>
-                    <div className="space-y-4">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="email">EMAIL *</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={shippingData.email}
-                            onChange={(e) => handleShippingChange('email', e.target.value)}
-                            placeholder="your@email.com"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="phone">PHONE *</Label>
-                          <Input
-                            id="phone"
-                            type="tel"
-                            value={shippingData.phone}
-                            onChange={(e) => handleShippingChange('phone', e.target.value)}
-                            placeholder="+91 98765 43210"
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Shipping Address */}
-                  <div className="frosted-glass border border-white/30 rounded-sm p-6">
-                    <h2 
-                      className="uppercase-headline mb-6"
-                      style={{ fontSize: '16px', letterSpacing: '0.1em', fontWeight: 600 }}
-                    >
-                      SHIPPING ADDRESS
-                    </h2>
-                    <div className="space-y-4">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="firstName">FIRST NAME *</Label>
-                          <Input
-                            id="firstName"
-                            value={shippingData.firstName}
-                            onChange={(e) => handleShippingChange('firstName', e.target.value)}
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="lastName">LAST NAME *</Label>
-                          <Input
-                            id="lastName"
-                            value={shippingData.lastName}
-                            onChange={(e) => handleShippingChange('lastName', e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="address">ADDRESS *</Label>
-                        <Input
-                          id="address"
-                          value={shippingData.address}
-                          onChange={(e) => handleShippingChange('address', e.target.value)}
-                          placeholder="Street address"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="apartment">APARTMENT, SUITE, ETC.</Label>
-                        <Input
-                          id="apartment"
-                          value={shippingData.apartment}
-                          onChange={(e) => handleShippingChange('apartment', e.target.value)}
-                          placeholder="Apartment, suite, etc. (optional)"
-                        />
-                      </div>
-
-                      <div className="grid md:grid-cols-3 gap-4">
-                        <div>
-                          <Label htmlFor="city">CITY *</Label>
-                          <Input
-                            id="city"
-                            value={shippingData.city}
-                            onChange={(e) => handleShippingChange('city', e.target.value)}
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="state">STATE *</Label>
-                          <Input
-                            id="state"
-                            value={shippingData.state}
-                            onChange={(e) => handleShippingChange('state', e.target.value)}
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="pincode">PINCODE *</Label>
-                          <Input
-                            id="pincode"
-                            value={shippingData.pincode}
-                            onChange={(e) => handleShippingChange('pincode', e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <Checkbox
-                          id="saveInfo"
-                          checked={saveInfo}
-                          onCheckedChange={(checked) => setSaveInfo(checked as boolean)}
-                        />
-                        <label
-                          htmlFor="saveInfo"
-                          className="cursor-pointer"
-                          style={{ fontSize: '12px' }}
-                        >
-                          Save this information for next time
-                        </label>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Address Selector */}
+                  <AddressSelector
+                    selectedAddress={selectedAddress}
+                    onAddressSelect={setSelectedAddress}
+                    onAddressChange={setSelectedAddress}
+                  />
 
                   {/* Action Buttons */}
                   <div className="flex gap-4">
-                    <button
+                    <Button
                       onClick={proceedToPayment}
                       className="flex-1 py-4 bg-[#D04007] text-white uppercase-headline transition-all duration-300 hover:bg-[#ff6b1a] hover:scale-[1.02]"
                       style={{ fontSize: '12px', letterSpacing: '0.15em' }}
                     >
                       CONTINUE TO PAYMENT
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -541,21 +793,32 @@ export function CheckoutPage() {
 
                   {/* Action Buttons */}
                   <div className="flex gap-4">
-                    <button
-                      onClick={() => setStep('details')}
+                    <Button
+                      onClick={() => setStep('address')}
+                      variant="outline"
                       className="px-6 py-4 border border-[#262930]/20 rounded-sm uppercase-headline transition-colors duration-300 hover:border-[#D04007]"
                       style={{ fontSize: '11px', letterSpacing: '0.1em' }}
                     >
                       BACK
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={placeOrder}
-                      className="flex-1 py-4 bg-[#D04007] text-white uppercase-headline transition-all duration-300 hover:bg-[#ff6b1a] hover:scale-[1.02] flex items-center justify-center gap-2"
+                      disabled={isProcessingPayment}
+                      className="flex-1 py-4 bg-[#D04007] text-white uppercase-headline transition-all duration-300 hover:bg-[#ff6b1a] hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ fontSize: '12px', letterSpacing: '0.15em' }}
                     >
+                      {isProcessingPayment ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          PROCESSING...
+                        </>
+                      ) : (
+                        <>
                       <Lock size={16} />
-                      PLACE ORDER - ₹{total.toLocaleString('en-IN')}
-                    </button>
+                      COMPLETE ORDER - ₹{total.toLocaleString('en-IN')}
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
               )}
@@ -576,7 +839,13 @@ export function CheckoutPage() {
                   {cartItems.map((item) => (
                     <div key={item.id} className="flex gap-4">
                       <div className="relative">
-                        <div className="w-16 h-16 bg-[#d0cdc7] rounded-sm"></div>
+                        <div className="w-16 h-16 bg-[#d0cdc7] rounded-sm overflow-hidden">
+                          <img 
+                            src={item.image} 
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
                         <div className="absolute -top-2 -right-2 w-5 h-5 bg-[#D04007] text-white rounded-full flex items-center justify-center" style={{ fontSize: '10px' }}>
                           {item.quantity}
                         </div>

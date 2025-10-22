@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Heart, ShoppingCart } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { formatINR } from '@/utils/format';
+import { useWishlist } from './WishlistContext';
+import { useAuth } from '@clerk/clerk-react';
 
 interface ProductCardProps {
   id?: string;
@@ -26,8 +28,11 @@ export function ProductCard({
   stock,
   colors = ['#000000']
 }: ProductCardProps) {
-  const [isWishlisted, setIsWishlisted] = useState(false);
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const { isSignedIn } = useAuth();
   const [isHovered, setIsHovered] = useState(false);
+  
+  const isWishlisted = id ? isInWishlist(id) : false;
 
   const formatPrice = (price: number) => formatINR(price);
 
@@ -38,6 +43,25 @@ export function ProductCard({
     // Prefer slug route for readability; include id as query fallback
     const search = id ? `?id=${encodeURIComponent(id)}` : '';
     window.location.hash = `product/${derivedSlug}${search}`;
+  };
+
+  const handleWishlistToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    
+    if (!id) return;
+    
+    if (isWishlisted) {
+      await removeFromWishlist(id);
+    } else {
+      // Pass product data for better optimistic updates
+      const productData = {
+        name,
+        price,
+        image,
+        category
+      };
+      await addToWishlist(id, productData);
+    }
   };
 
   return (
@@ -89,8 +113,8 @@ export function ProductCard({
 
         {/* Wishlist Button */}
         <button
-          onClick={() => setIsWishlisted(!isWishlisted)}
-          className={`absolute top-2 right-2 p-2 rounded-full backdrop-blur-sm transition-all duration-300 ${
+          onClick={handleWishlistToggle}
+          className={`absolute top-2 right-2 p-2 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110 ${
             isWishlisted 
               ? 'bg-[#D04007] text-white' 
               : 'bg-white/80 text-[#262930] hover:bg-white'

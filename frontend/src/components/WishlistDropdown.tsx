@@ -7,26 +7,30 @@ import {
 import { Button } from './ui/button';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useWishlist } from './WishlistContext';
+import { useAuth } from '@clerk/clerk-react';
+import { useAuth as useAuthContext } from './AuthContext';
 
 interface WishlistDropdownProps {
   itemCount?: number;
 }
 
 export function WishlistDropdown({ itemCount }: WishlistDropdownProps) {
-  const { wishlistItems, removeFromWishlist } = useWishlist();
+  const { items: wishlistItems, removeFromWishlist } = useWishlist();
+  const { isSignedIn } = useAuth();
+  const { login } = useAuthContext();
   const count = itemCount ?? wishlistItems.length;
 
-  const handleRemoveItem = (id: string) => {
-    removeFromWishlist(id);
+  const handleRemoveItem = async (productId: string) => {
+    await removeFromWishlist(productId);
   };
 
-  const handleAddToCart = (id: string) => {
-    // TODO: Implement add to cart logic
-    console.log('Add to cart:', id);
+  const handleAddToCart = (productId: string) => {
+    // Navigate to product page for adding to cart
+    window.location.hash = `#product/id/${productId}`;
   };
 
-  const handleViewProduct = (id: string) => {
-    window.location.hash = `#product/${id}`;
+  const handleViewProduct = (productId: string) => {
+    window.location.hash = `#product/id/${productId}`;
   };
 
   const handleViewAllWishlist = () => {
@@ -61,7 +65,22 @@ export function WishlistDropdown({ itemCount }: WishlistDropdownProps) {
         </div>
 
         {/* Content */}
-        {wishlistItems.length === 0 ? (
+        {!isSignedIn ? (
+          <div className="px-4 py-8 text-center">
+            <Heart className="mx-auto mb-2 text-[#404040]" size={32} />
+            <p className="text-[#404040] mb-3" style={{ fontSize: '12px' }}>
+              Please sign in to view your wishlist
+            </p>
+            <Button
+              onClick={login}
+              size="sm"
+              className="bg-[#000] hover:bg-[#262930] text-[#f9f7f0] uppercase-headline"
+              style={{ fontSize: '10px' }}
+            >
+              Sign In
+            </Button>
+          </div>
+        ) : wishlistItems.length === 0 ? (
           <div className="px-4 py-8 text-center">
             <Heart className="mx-auto mb-2 text-[#404040]" size={32} />
             <p className="text-[#404040]" style={{ fontSize: '12px' }}>
@@ -80,8 +99,8 @@ export function WishlistDropdown({ itemCount }: WishlistDropdownProps) {
                   <div className="flex gap-3">
                     {/* Product Image */}
                     <button
-                      onClick={() => handleViewProduct(item.id)}
-                      className="w-16 h-20 bg-white rounded overflow-hidden flex-shrink-0"
+                      onClick={() => handleViewProduct(item.productId)}
+                      className="w-16 h-20 bg-gray-100 rounded overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity border border-gray-200"
                     >
                       <ImageWithFallback
                         src={item.image}
@@ -100,7 +119,7 @@ export function WishlistDropdown({ itemCount }: WishlistDropdownProps) {
                           {item.category}
                         </p>
                         <button
-                          onClick={() => handleViewProduct(item.id)}
+                          onClick={() => handleViewProduct(item.productId)}
                           className="text-left hover:text-[#D04007] transition-smooth"
                         >
                           <h4 
@@ -118,23 +137,16 @@ export function WishlistDropdown({ itemCount }: WishlistDropdownProps) {
                       {/* Actions */}
                       <div className="flex items-center gap-2 mt-2">
                         <Button
-                          onClick={() => handleAddToCart(item.id)}
-                          disabled={!item.inStock}
+                          onClick={() => handleAddToCart(item.productId)}
                           size="sm"
-                          className="flex-1 bg-[#000] hover:bg-[#262930] text-[#f9f7f0] uppercase-headline h-7 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-1 bg-[#000] hover:bg-[#262930] text-[#f9f7f0] uppercase-headline h-7"
                           style={{ fontSize: '9px' }}
                         >
-                          {item.inStock ? (
-                            <>
-                              <ShoppingCart size={10} className="mr-1" />
-                              Add to Cart
-                            </>
-                          ) : (
-                            'Out of Stock'
-                          )}
+                          <ShoppingCart size={10} className="mr-1" />
+                          Add to Cart
                         </Button>
                         <button
-                          onClick={() => handleRemoveItem(item.id)}
+                          onClick={() => handleRemoveItem(item.productId)}
                           className="text-[#404040] hover:text-[#D04007] transition-smooth p-1"
                         >
                           <X size={14} />

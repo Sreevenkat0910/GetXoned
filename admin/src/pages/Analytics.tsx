@@ -28,7 +28,7 @@ export function Analytics() {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-0 shadow-sm bg-white dark:bg-[#1a1a1a]">
+        <Card className="border-0 shadow-sm bg-[#F5F3F0]">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -45,7 +45,7 @@ export function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm bg-white dark:bg-[#1a1a1a]">
+        <Card className="border-0 shadow-sm bg-[#F5F3F0]">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -62,7 +62,7 @@ export function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm bg-white dark:bg-[#1a1a1a]">
+        <Card className="border-0 shadow-sm bg-[#F5F3F0]">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -79,7 +79,7 @@ export function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm bg-white dark:bg-[#1a1a1a]">
+        <Card className="border-0 shadow-sm bg-[#F5F3F0]">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -98,7 +98,7 @@ export function Analytics() {
       </div>
 
       {/* Revenue and Orders Trend */}
-      <Card className="border-0 shadow-sm bg-white dark:bg-[#1a1a1a]">
+      <Card className="border-0 shadow-sm bg-[#F5F3F0]">
         <CardHeader>
           <CardTitle className="text-[#262930] dark:text-white">Revenue & Orders Trend</CardTitle>
         </CardHeader>
@@ -143,7 +143,7 @@ export function Analytics() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Products by Revenue */}
-        <Card className="border-0 shadow-sm bg-white dark:bg-[#1a1a1a]">
+        <Card className="border-0 shadow-sm bg-[#F5F3F0]">
           <CardHeader>
             <CardTitle className="text-[#262930] dark:text-white">Top Products by Revenue</CardTitle>
           </CardHeader>
@@ -167,7 +167,7 @@ export function Analytics() {
         </Card>
 
         {/* Sales by Capsule Distribution */}
-        <Card className="border-0 shadow-sm bg-white dark:bg-[#1a1a1a]">
+        <Card className="border-0 shadow-sm bg-[#F5F3F0]">
           <CardHeader>
             <CardTitle className="text-[#262930] dark:text-white">Sales Distribution by Capsule</CardTitle>
           </CardHeader>
@@ -202,7 +202,7 @@ export function Analytics() {
       </div>
 
       {/* Capsule Performance Table */}
-      <Card className="border-0 shadow-sm bg-white dark:bg-[#1a1a1a]">
+      <Card className="border-0 shadow-sm bg-[#F5F3F0]">
         <CardHeader>
           <CardTitle className="text-[#262930] dark:text-white">Capsule Performance</CardTitle>
         </CardHeader>

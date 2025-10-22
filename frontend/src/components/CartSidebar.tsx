@@ -1,8 +1,9 @@
 import { X, Minus, Plus, Trash2 } from 'lucide-react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from './ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from './ui/sheet';
 import { Button } from './ui/button';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useCart } from './CartContext';
+import { useAuth } from './AuthContext';
 
 interface CartSidebarProps {
   isOpen: boolean;
@@ -10,15 +11,23 @@ interface CartSidebarProps {
 }
 
 export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
-  const { items: cartItems, updateQuantity, removeItem, subtotal } = useCart();
+  const { items: cartItems, updateQuantity, removeItem, subtotal, optimisticUpdateQuantity, optimisticRemoveItem } = useCart();
+  const { isAuthenticated, login } = useAuth();
   const shipping = subtotal >= 50000 ? 0 : (subtotal > 0 ? 500 : 0);
   const total = subtotal + shipping;
 
   const handleQuantityChange = (id: string, currentQuantity: number, delta: number) => {
-    updateQuantity(id, currentQuantity + delta);
+    const newQuantity = currentQuantity + delta;
+    // Use optimistic update for immediate UI feedback
+    optimisticUpdateQuantity(id, newQuantity);
+    // Still call the backend function for persistence
+    updateQuantity(id, newQuantity);
   };
 
   const handleRemoveItem = (id: string) => {
+    // Use optimistic update for immediate UI feedback
+    optimisticRemoveItem(id);
+    // Still call the backend function for persistence
     removeItem(id);
   };
 
@@ -35,21 +44,52 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
       >
         <SheetHeader className="px-6 py-6 border-b border-[#262930]/10">
           <SheetTitle className="uppercase-headline" style={{ fontSize: '16px' }}>
-            SHOPPING CART ({cartItems.length})
+            SHOPPING CART {isAuthenticated ? `(${cartItems.length})` : ''}
           </SheetTitle>
+          <SheetDescription className="text-[#404040] text-sm">
+            {isAuthenticated ? 'Review and manage your cart items' : 'Sign in to access your cart'}
+          </SheetDescription>
         </SheetHeader>
 
         {cartItems.length === 0 ? (
           <div className="flex-1 flex items-center justify-center px-6">
             <div className="text-center">
-              <p className="text-[#404040] mb-4">Your cart is empty</p>
-              <Button 
-                onClick={onClose}
-                className="bg-[#000] hover:bg-[#262930] text-[#f9f7f0] uppercase-headline"
-                style={{ fontSize: '11px' }}
-              >
-                Continue Shopping
-              </Button>
+              {!isAuthenticated ? (
+                <>
+                  <p className="text-[#404040] mb-6" style={{ fontSize: '14px' }}>
+                    Please log in to view your cart
+                  </p>
+                  <Button 
+                    onClick={() => {
+                      login();
+                      onClose();
+                    }}
+                    className="bg-[#000] hover:bg-[#262930] text-[#f9f7f0] uppercase-headline mb-3"
+                    style={{ fontSize: '11px' }}
+                  >
+                    Login
+                  </Button>
+                  <Button 
+                    onClick={onClose}
+                    variant="outline"
+                    className="border-[#262930]/20 text-[#404040] hover:bg-[#262930]/5 uppercase-headline"
+                    style={{ fontSize: '11px' }}
+                  >
+                    Continue Shopping
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-[#404040] mb-4">Your cart is empty</p>
+                  <Button 
+                    onClick={onClose}
+                    className="bg-[#000] hover:bg-[#262930] text-[#f9f7f0] uppercase-headline"
+                    style={{ fontSize: '11px' }}
+                  >
+                    Continue Shopping
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         ) : (

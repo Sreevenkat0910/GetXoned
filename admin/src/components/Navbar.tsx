@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Search, Moon, Sun, LogOut, Settings, User } from 'lucide-react';
+import { LogOut, Settings, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import {
@@ -10,74 +10,50 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { Input } from "./ui/input";
-import { useTheme } from "../contexts/ThemeContext";
-import { mockAdminUser } from "../utils/mockData";
+import { useUser, useAuth } from '@clerk/clerk-react';
 
 export const Navbar = memo(function Navbar() {
-  const { theme, toggleTheme } = useTheme();
+  const { user } = useUser();
+  const { signOut } = useAuth();
 
   const handleSignOut = () => {
-    // Mock Clerk sign out
-    console.log("Signing out...");
-    alert("Sign out functionality would connect to Clerk's signOut() API");
+    signOut();
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-sm border-gray-200 dark:border-gray-800 transition-colors duration-200">
+          <header className="sticky top-0 z-40 border-b bg-[#F5F3F0]/95 backdrop-blur-sm border-gray-200">
       <div className="flex h-14 sm:h-16 items-center gap-2 sm:gap-4 px-3 sm:px-6">
-        {/* Logo - Hidden on mobile when sidebar is open */}
-        <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#A00000] to-[#CC5500] flex items-center justify-center">
-            <span className="text-white">A</span>
+        {/* Logo and Brand */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#A00000] to-[#CC5500] flex items-center justify-center">
+            <span className="text-white font-bold text-lg">X</span>
           </div>
-          <span className="text-[#262930] dark:text-white hidden lg:inline-block">Admin Portal</span>
+          <div className="hidden sm:block">
+            <h1 className="text-[#262930] font-bold text-lg">XONED</h1>
+            <p className="text-[#404040] text-xs">Admin Dashboard</p>
+          </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="flex-1 max-w-xl">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#404040] dark:text-gray-400" />
-            <Input
-              type="search"
-              placeholder="Search..."
-              className="pl-10 bg-[#EAE7E2] dark:bg-[#262930] border-0 h-9 sm:h-10"
-            />
-          </div>
-        </div>
+        {/* Spacer to push user menu to the right */}
+        <div className="flex-1"></div>
 
         {/* Right Section */}
         <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
-          {/* Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="rounded-full h-9 w-9 sm:h-10 sm:w-10"
-            aria-label="Toggle theme"
-          >
-            {theme === 'light' ? (
-              <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
-            ) : (
-              <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
-            )}
-          </Button>
-
           {/* User Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 sm:h-10 rounded-full px-1 sm:px-2">
                 <div className="flex items-center gap-2">
                   <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
-                    <AvatarImage src={mockAdminUser.imageUrl} alt={mockAdminUser.firstName} />
-                    <AvatarFallback>{mockAdminUser.firstName[0]}</AvatarFallback>
+                    <AvatarImage src={user?.imageUrl} alt={user?.firstName || 'Admin'} />
+                    <AvatarFallback>{user?.firstName?.[0] || 'A'}</AvatarFallback>
                   </Avatar>
                   <div className="hidden lg:block text-left">
-                    <p className="text-sm text-[#262930] dark:text-white">
-                      {mockAdminUser.firstName} {mockAdminUser.lastName}
+                    <p className="text-sm text-[#262930]">
+                      {user?.firstName} {user?.lastName}
                     </p>
-                    <p className="text-xs text-[#404040] dark:text-gray-400">
-                      {mockAdminUser.email}
+                    <p className="text-xs text-[#404040]">
+                      {user?.emailAddresses?.[0]?.emailAddress}
                     </p>
                   </div>
                 </div>
@@ -86,8 +62,9 @@ export const Navbar = memo(function Navbar() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div>
-                  <p>{mockAdminUser.firstName} {mockAdminUser.lastName}</p>
-                  <p className="text-xs text-[#404040] dark:text-gray-400">{mockAdminUser.email}</p>
+                  <p>{user?.firstName} {user?.lastName}</p>
+                  <p className="text-xs text-[#404040]">{user?.emailAddresses?.[0]?.emailAddress}</p>
+                  <p className="text-xs text-green-600 font-medium">Admin</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

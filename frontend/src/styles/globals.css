@@ -410,6 +410,8 @@ img {
   border-radius: 8px;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
   background: white;
+  will-change: transform;
+  transform: translateZ(0); /* Force GPU acceleration */
 }
 
 /* Perfect rectangular grid - no gaps anywhere */
@@ -622,6 +624,15 @@ img {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  will-change: backdrop-filter, background-color;
+  transform: translateZ(0); /* Force GPU acceleration */
+}
+
+/* Performance optimization for blur effects */
+.blur-background {
+  will-change: filter;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Ensure cards fill their grid areas properly */
@@ -655,11 +666,15 @@ img {
 
 /* Ensure smooth image rendering */
 .masonry-grid img {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  will-change: transform, opacity;
+  transform: translateZ(0); /* Force GPU acceleration */
+  backface-visibility: hidden; /* Prevent flickering */
 }
 
 .masonry-grid > div:hover img {
   opacity: 0.95;
+  transform: scale(1.02) translateZ(0);
 }
 
 /* Editorial typography adjustments */
@@ -715,4 +730,29 @@ body {
 /* Prevent layout shifts during scroll */
 .backdrop-blur-3xl {
   transform: translate3d(0, 0, 0);
+}
+
+/* Success page animations */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.8s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s ease-out;
 }

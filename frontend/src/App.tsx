@@ -4,6 +4,8 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthProvider } from './components/AuthContext';
 import { WishlistProvider } from './components/WishlistContext';
 import { CartProvider } from './components/CartContext';
+import { AddressProvider } from './components/AddressContext';
+import { OrderProvider } from './components/OrderContext';
 import { Toaster } from './components/ui/sonner';
 import { ScrollToTop } from './components/ScrollToTop';
 import { useKeyboardShortcuts } from './components/KeyboardShortcuts';
@@ -48,17 +50,21 @@ export default function App() {
       <AuthProvider>
         <WishlistProvider>
           <CartProvider>
-            {currentPage === 'home' && <HomePage />}
-            {currentPage === 'capsule' && <CapsulePage />}
-            {currentPage === 'search' && <SearchPage />}
-            {currentPage === 'product' && <ProductDetailPage />}
-            {currentPage === 'account' && <AccountPage />}
-            {currentPage === 'about' && <AboutPage />}
-            {currentPage === 'vault' && <VaultPage />}
-            {currentPage === 'cart' && <CartPage />}
-            {currentPage === 'checkout' && <CheckoutPage />}
-            <ScrollToTop currentPage={currentPage} />
-            <Toaster />
+            <AddressProvider>
+              <OrderProvider>
+                {currentPage === 'home' && <HomePage />}
+                {currentPage === 'capsule' && <CapsulePage />}
+                {currentPage === 'search' && <SearchPage />}
+                {currentPage === 'product' && <ProductDetailPage />}
+                {currentPage === 'account' && <AccountPage />}
+                {currentPage === 'about' && <AboutPage />}
+                {currentPage === 'vault' && <VaultPage />}
+                {currentPage === 'cart' && <CartPage />}
+                {currentPage === 'checkout' && <CheckoutPage />}
+                <ScrollToTop currentPage={currentPage} />
+                <Toaster />
+              </OrderProvider>
+            </AddressProvider>
           </CartProvider>
         </WishlistProvider>
       </AuthProvider>

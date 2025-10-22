@@ -5,12 +5,22 @@ const ERROR_IMG_SRC =
 
 export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElement>) {
   const [didError, setDidError] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   const handleError = () => {
     setDidError(true)
+    setIsLoading(false)
   }
 
-  const { src, alt, style, className, ...rest } = props
+  const handleLoad = () => {
+    setIsLoading(false)
+    // Call the original onLoad if provided
+    if (props.onLoad) {
+      props.onLoad()
+    }
+  }
+
+  const { src, alt, style, className, onLoad, ...rest } = props
 
   return didError ? (
     <div
@@ -18,10 +28,31 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
       style={style}
     >
       <div className="flex items-center justify-center w-full h-full">
-        <img src={ERROR_IMG_SRC} alt="Error loading image" {...rest} data-original-url={src} />
+        <img 
+          src={ERROR_IMG_SRC} 
+          alt="Error loading image" 
+          {...rest} 
+          data-original-url={src}
+          loading="lazy"
+          decoding="async"
+        />
       </div>
     </div>
   ) : (
-    <img src={src} alt={alt} className={className} style={style} {...rest} onError={handleError} />
+    <img 
+      src={src} 
+      alt={alt} 
+      className={className} 
+      style={{
+        ...style,
+        opacity: isLoading ? 0 : 1,
+        transition: 'opacity 0.3s ease-in-out'
+      }} 
+      {...rest} 
+      onError={handleError}
+      onLoad={handleLoad}
+      loading="lazy"
+      decoding="async"
+    />
   )
 }

@@ -1,8 +1,11 @@
 import { useState, lazy, Suspense } from 'react';
+import { ClerkProvider } from '@clerk/clerk-react';
 import { SidebarProvider, SidebarInset } from "./components/ui/sidebar";
 import { Navbar } from "./components/Navbar";
 import { AppSidebar } from "./components/AppSidebar";
-import { ThemeProvider } from "./contexts/ThemeContext";
+import { AdminOrderProvider } from "./contexts/OrderContext";
+import { AdminProvider } from "./contexts/AdminContext";
+import { AdminAuth } from "./components/AdminAuth";
 import { Toaster } from "./components/ui/sonner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { PageLoader } from "./components/PageLoader";
@@ -22,7 +25,7 @@ export default function App() {
   const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onNavigate={setActiveView} />;
       case 'products':
         return <Products />;
       case 'capsules':
@@ -42,30 +45,34 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <div className="min-h-screen bg-[#EAE7E2] dark:bg-[#262930] transition-colors duration-200">
-          <SidebarProvider>
-            <AppSidebar activeView={activeView} onNavigate={setActiveView} />
-            <SidebarInset className="bg-[#EAE7E2] dark:bg-[#262930]">
-              <Navbar />
-              <main className="p-4 sm:p-6 max-w-[1920px] mx-auto">
-                <ErrorBoundary>
-                  <Suspense fallback={<PageLoader />}>
-                    {renderContent()}
-                  </Suspense>
-                </ErrorBoundary>
-              </main>
-            </SidebarInset>
-          </SidebarProvider>
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              duration: 3000,
-              className: 'bg-white dark:bg-[#1a1a1a] text-[#262930] dark:text-white',
-            }}
-          />
-        </div>
-      </ThemeProvider>
+      <AdminProvider>
+        <AdminAuth>
+          <AdminOrderProvider>
+            <div className="min-h-screen bg-[#EAE7E2]">
+              <SidebarProvider>
+                <AppSidebar activeView={activeView} onNavigate={setActiveView} />
+                <SidebarInset className="bg-[#EAE7E2]">
+                  <Navbar />
+                  <main className="p-4 sm:p-6 max-w-[1920px] mx-auto">
+                    <ErrorBoundary>
+                      <Suspense fallback={<PageLoader />}>
+                        {renderContent()}
+                      </Suspense>
+                    </ErrorBoundary>
+                  </main>
+                </SidebarInset>
+              </SidebarProvider>
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 3000,
+                  className: 'bg-[#F5F3F0] text-[#262930]',
+                }}
+              />
+            </div>
+          </AdminOrderProvider>
+        </AdminAuth>
+      </AdminProvider>
     </ErrorBoundary>
   );
 }

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Search, Plus, MoreVertical, Edit, Trash2, Filter, Copy, Eye, Star, StarOff } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Plus, MoreVertical, Edit, Trash2, Filter, Copy, Eye, Star, StarOff, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -37,11 +37,11 @@ import {
 } from "../components/ui/alert-dialog";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { ProductFormModal } from "../components/ProductFormModal";
-import { mockProducts, mockCapsules, Product } from "../utils/mockData";
+import { useAdmin, Product } from "../contexts/AdminContext";
 import { toast } from "sonner@2.0.3";
 
 export function Products() {
-  const [products, setProducts] = useState(mockProducts);
+  const { products, capsules, loading, addProduct, updateProduct, deleteProduct } = useAdmin();
   const [searchQuery, setSearchQuery] = useState('');
   const [capsuleFilter, setCapsuleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -52,7 +52,7 @@ export function Products() {
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.capsuleName.toLowerCase().includes(searchQuery.toLowerCase());
+                         (product.capsuleName && product.capsuleName.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesCapsule = capsuleFilter === 'all' || product.capsuleId === capsuleFilter;
     const matchesStatus = statusFilter === 'all' || product.status === statusFilter;
     return matchesSearch && matchesCapsule && matchesStatus;
@@ -68,50 +68,42 @@ export function Products() {
     setIsModalOpen(true);
   };
 
-  const handleSaveProduct = (productData: Partial<Product>) => {
+  const handleSaveProduct = async (productData: Partial<Product>) => {
     if (editingProduct) {
       // Update existing product
-      setProducts(products.map(p => 
-        p.id === editingProduct.id ? { ...p, ...productData } : p
-      ));
-      toast.success('Product updated successfully');
+      const success = await updateProduct(editingProduct._id, productData);
+      if (success) {
+        setIsModalOpen(false);
+      }
     } else {
       // Add new product
-      const newProduct: Product = {
-        id: `prod${Date.now()}`,
-        ...productData,
-        createdAt: new Date().toISOString().split('T')[0]
-      } as Product;
-      setProducts([newProduct, ...products]);
-      toast.success('Product added successfully');
+      const success = await addProduct(productData);
+      if (success) {
+        setIsModalOpen(false);
+      }
     }
   };
 
-  const handleDeleteProduct = () => {
+  const handleDeleteProduct = async () => {
     if (selectedProduct) {
-      setProducts(products.filter(p => p.id !== selectedProduct));
-      toast.success('Product deleted successfully');
-      setDeleteDialogOpen(false);
-      setSelectedProduct(null);
+      const success = await deleteProduct(selectedProduct);
+      if (success) {
+        setDeleteDialogOpen(false);
+        setSelectedProduct(null);
+      }
     }
   };
 
-  const handleDuplicateProduct = (product: Product) => {
-    const duplicatedProduct: Product = {
+  const handleDuplicateProduct = async (product: Product) => {
+    const duplicatedProductData = {
       ...product,
-      id: `prod${Date.now()}`,
       name: `${product.name} (Copy)`,
-      createdAt: new Date().toISOString().split('T')[0]
     };
-    setProducts([duplicatedProduct, ...products]);
-    toast.success('Product duplicated successfully');
+    await addProduct(duplicatedProductData);
   };
 
-  const handleToggleFeatured = (product: Product) => {
-    setProducts(products.map(p => 
-      p.id === product.id ? { ...p, isFeatured: !p.isFeatured } : p
-    ));
-    toast.success(product.isFeatured ? 'Removed from featured' : 'Added to featured');
+  const handleToggleFeatured = async (product: Product) => {
+    await updateProduct(product._id, { isFeatured: !product.isFeatured });
   };
 
   const handleViewProduct = (product: Product) => {
@@ -135,8 +127,8 @@ export function Products() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-[#262930] dark:text-white">Products Management</h2>
-          <p className="text-sm text-[#404040] dark:text-gray-400 mt-1">
+          <h2 className="text-[#262930]">Products Management</h2>
+          <p className="text-sm text-[#404040] mt-1">
             Manage your product catalog and inventory
           </p>
         </div>
@@ -147,11 +139,11 @@ export function Products() {
       </div>
 
       {/* Filters */}
-      <Card className="border-0 shadow-sm bg-white dark:bg-[#1a1a1a]">
+      <Card className="border-0 shadow-sm bg-[#F5F3F0]">
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#404040] dark:text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#404040]" />
               <Input
                 placeholder="Search products..."
                 value={searchQuery}
@@ -166,8 +158,8 @@ export function Products() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Capsules</SelectItem>
-                {mockCapsules.map(capsule => (
-                  <SelectItem key={capsule.id} value={capsule.id}>
+                {capsules.map(capsule => (
+                  <SelectItem key={capsule._id} value={capsule._id}>
                     {capsule.name}
                   </SelectItem>
                 ))}
@@ -189,9 +181,9 @@ export function Products() {
       </Card>
 
       {/* Products Table */}
-      <Card className="border-0 shadow-sm bg-white dark:bg-[#1a1a1a]">
+      <Card className="border-0 shadow-sm bg-[#F5F3F0]">
         <CardHeader>
-          <CardTitle className="text-[#262930] dark:text-white">
+          <CardTitle className="text-[#262930]">
             All Products ({filteredProducts.length})
           </CardTitle>
         </CardHeader>
@@ -210,90 +202,107 @@ export function Products() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <ImageWithFallback
-                        src={product.images[0]}
-                        alt={product.name}
-                        className="w-12 h-12 object-cover rounded"
-                      />
-                      <div>
-                        <p className="text-sm text-[#262930] dark:text-white">{product.name}</p>
-                        <p className="text-xs text-[#404040] dark:text-gray-400">
-                          {product.tags.join(', ')}
-                        </p>
-                      </div>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading products...
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-[#404040] dark:text-gray-400">
-                    {product.capsuleName}
-                  </TableCell>
-                  <TableCell className="text-sm text-[#262930] dark:text-white">
-                    ${product.price.toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-sm text-[#404040] dark:text-gray-400">
-                    {product.stock}
-                  </TableCell>
-                  <TableCell>
-                    {getStatusBadge(product.status)}
-                  </TableCell>
-                  <TableCell>
-                    {product.isFeatured && (
-                      <Badge variant="outline" className="border-[#CC5500] text-[#CC5500]">
-                        Featured
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewProduct(product)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditProduct(product)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDuplicateProduct(product)}>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleToggleFeatured(product)}>
-                          {product.isFeatured ? (
-                            <>
-                              <StarOff className="mr-2 h-4 w-4" />
-                              Remove from Featured
-                            </>
-                          ) : (
-                            <>
-                              <Star className="mr-2 h-4 w-4" />
-                              Add to Featured
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedProduct(product.id);
-                            setDeleteDialogOpen(true);
-                          }}
-                          className="text-[#A00000]"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                </TableRow>
+              ) : filteredProducts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-[#404040]">
+                    No products found
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredProducts.map((product) => (
+                  <TableRow key={product._id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <ImageWithFallback
+                          src={product.image?.[0] || '/placeholder-product.jpg'}
+                          alt={product.name}
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                        <div>
+                          <p className="text-sm text-[#262930]">{product.name}</p>
+                          <p className="text-xs text-[#404040]">
+                            {product.category}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-[#404040]">
+                      {product.capsuleName || 'No Capsule'}
+                    </TableCell>
+                    <TableCell className="text-sm text-[#262930]">
+                      ₹{product.price.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-sm text-[#404040]">
+                      {product.stock}
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(product.status)}
+                    </TableCell>
+                    <TableCell>
+                      {product.isFeatured && (
+                        <Badge variant="outline" className="border-[#CC5500] text-[#CC5500]">
+                          Featured
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewProduct(product)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditProduct(product)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDuplicateProduct(product)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleToggleFeatured(product)}>
+                            {product.isFeatured ? (
+                              <>
+                                <StarOff className="mr-2 h-4 w-4" />
+                                Remove from Featured
+                              </>
+                            ) : (
+                              <>
+                                <Star className="mr-2 h-4 w-4" />
+                                Add to Featured
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedProduct(product._id);
+                              setDeleteDialogOpen(true);
+                            }}
+                            className="text-[#A00000]"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
           </div>

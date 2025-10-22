@@ -83,8 +83,25 @@ export function isValidEmail(email: string): boolean {
  * Validate Indian phone number
  */
 export function isValidIndianPhone(phone: string): boolean {
-  const phoneRegex = /^[6-9]\d{9}$/;
-  return phoneRegex.test(phone.replace(/\D/g, ''));
+  // Remove all non-digit characters
+  const cleanPhone = phone.replace(/\D/g, '');
+  
+  // Check for 10-digit number starting with 6-9 (mobile)
+  if (/^[6-9]\d{9}$/.test(cleanPhone)) {
+    return true;
+  }
+  
+  // Check for 11-digit number starting with 0 followed by 6-9 (with leading zero)
+  if (/^0[6-9]\d{9}$/.test(cleanPhone)) {
+    return true;
+  }
+  
+  // Check for 12-digit number starting with 91 followed by 6-9 (with country code)
+  if (/^91[6-9]\d{9}$/.test(cleanPhone)) {
+    return true;
+  }
+  
+  return false;
 }
 
 /**

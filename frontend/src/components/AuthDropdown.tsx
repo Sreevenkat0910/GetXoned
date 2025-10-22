@@ -21,6 +21,12 @@ export function AuthDropdown() {
     }
   };
 
+  const handleOrdersClick = () => {
+    if (isAuthenticated) {
+      window.location.hash = '#account';
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -85,6 +91,7 @@ export function AuthDropdown() {
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem 
+                onClick={handleOrdersClick}
                 className="cursor-pointer hover:bg-[#262930]/5 focus:bg-[#262930]/5"
               >
                 <div className="flex items-center gap-3 w-full py-2">

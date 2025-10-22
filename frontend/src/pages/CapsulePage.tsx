@@ -1,36 +1,83 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { NavBar } from '../components/NavBar';
 import { Footer } from '../components/Footer';
 import { MasonryProductCard } from '../components/MasonryProductCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Package, TrendingUp, ChevronDown } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 
-function CapsuleGrid() {
+const CapsuleGrid = React.memo(() => {
   const [items, setItems] = useState([] as any[])
   const [currentDrop, setCurrentDrop] = useState(null)
   const [loading, setLoading] = useState(true)
   const { getToken } = useAuth()
+  const abortControllerRef = useRef(null)
+  
+  const fetchProducts = useCallback(async () => {
+    // Cancel previous request if still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    
+    abortControllerRef.current = new AbortController()
+    
+    try {
+      const token = await getToken().catch(() => undefined)
+      const res = await fetch(`${(window as any).VITE_API_URL || 'http://localhost:4000'}/api/product/current-drop`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        signal: abortControllerRef.current.signal
+      })
+      
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      
+      const data = await res.json()
+      setItems(data.products || [])
+      setCurrentDrop(data.drop)
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Failed to fetch current drop products:', error)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [getToken])
   
   useEffect(() => {
-    (async () => {
-      try {
-        const token = await getToken().catch(() => undefined)
-        const res = await fetch(`${(window as any).VITE_API_URL || 'http://localhost:4000'}/api/product/current-drop`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        })
-        const data = await res.json()
-        setItems(data.products || [])
-        setCurrentDrop(data.drop)
-      } catch (error) {
-        console.error('Failed to fetch current drop products:', error)
-      } finally {
-        setLoading(false)
+    fetchProducts()
+    
+    // Cleanup on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
       }
-    })()
-  }, [getToken])
+    }
+  }, [fetchProducts])
+
+  // Memoize the product cards to prevent unnecessary re-renders
+  const productCards = useMemo(() => {
+    return items.slice(0, 9).map((p: any, index: number) => {
+      const fallbackVariantImg = p?.variants?.[0]?.images?.[0] || ''
+      const img = (p?.image?.[0]) || fallbackVariantImg
+      
+      return (
+        <div key={p._id}>
+          <MasonryProductCard 
+            id={p._id} 
+            name={p.name} 
+            price={p.price} 
+            image={img} 
+            category={p.category} 
+            colors={p.variants?.map((v: any) => v.colorHex)} 
+            slug={p.slug}
+            isNew={index < 3} // First 3 items are "new"
+            stock={p.stock || 0} // Real stock from database
+          />
+        </div>
+      )
+    })
+  }, [items])
 
   // Editorial grid uses CSS Grid spans instead of aspect ratios
   
@@ -58,32 +105,18 @@ function CapsuleGrid() {
       </div>
     )
   }
-
+  
   return (
     <div className="masonry-grid">
-      {items.slice(0, 9).map((p: any, index: number) => {
-        const fallbackVariantImg = p?.variants?.[0]?.images?.[0] || ''
-        const img = (p?.image?.[0]) || fallbackVariantImg
-        
-        return (
-          <div key={p._id}>
-            <MasonryProductCard 
-              id={p._id} 
-              name={p.name} 
-              price={p.price} 
-              image={img} 
-              category={p.category} 
-              colors={p.variants?.map((v: any) => v.colorHex)} 
-              slug={p.slug}
-              isNew={index < 3} // First 3 items are "new"
-              stock={p.stock || 0} // Real stock from database
-            />
-          </div>
-        )
-      })}
+      {productCards}
     </div>
   )
-}
+})
+
+CapsuleGrid.displayName = 'CapsuleGrid'
+
+// Export the component for proper TypeScript recognition
+export { CapsuleGrid }
 
 export function CapsulePage() {
   const [bannerUrl, setBannerUrl] = useState('')
@@ -92,32 +125,56 @@ export function CapsulePage() {
   const [scrollY, setScrollY] = useState(0)
   const [showScrollIndicator, setShowScrollIndicator] = useState(true)
   const { getToken } = useAuth()
+  const abortControllerRef = useRef(null)
+  const scrollTimeoutRef = useRef(null)
 
-  useEffect(() => {
-    // Fetch current drop data from backend
-    const fetchCurrentDrop = async () => {
-      try {
-        const token = await getToken().catch(() => undefined)
-        const res = await fetch(`${(window as any).VITE_API_URL || 'http://localhost:4000'}/api/drop/current`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        })
-        const data = await res.json()
-        if (data.success && data.drop) {
-          setCurrentDrop(data.drop)
-          setBannerUrl(data.drop.bannerUrl)
-        }
-      } catch (error) {
-        console.error('Failed to fetch current drop:', error)
-      } finally {
-        setLoading(false)
-      }
+  const fetchCurrentDrop = useCallback(async () => {
+    // Cancel previous request if still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
     }
-
-    fetchCurrentDrop()
+    
+    abortControllerRef.current = new AbortController()
+    
+    try {
+      const token = await getToken().catch(() => undefined)
+      const res = await fetch(`${(window as any).VITE_API_URL || 'http://localhost:4000'}/api/drop/current`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        signal: abortControllerRef.current.signal
+      })
+      
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      
+      const data = await res.json()
+      if (data.success && data.drop) {
+        setCurrentDrop(data.drop)
+        setBannerUrl(data.drop.bannerUrl)
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Failed to fetch current drop:', error)
+      }
+    } finally {
+      setLoading(false)
+    }
   }, [getToken])
 
   useEffect(() => {
-    // Optimized scroll detection for hiding scroll indicator
+    fetchCurrentDrop()
+    
+    // Cleanup on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+    }
+  }, [fetchCurrentDrop])
+
+  useEffect(() => {
+    // Throttled scroll detection for better performance
     let ticking = false
     
     const handleScroll = () => {
@@ -126,12 +183,18 @@ export function CapsulePage() {
           const scrollY = window.scrollY
           setScrollY(scrollY)
           
-          // Hide scroll indicator when user starts scrolling
-          if (scrollY > 10) {
-            setShowScrollIndicator(false)
-          } else {
-            setShowScrollIndicator(true)
+          // Debounced scroll indicator toggle
+          if (scrollTimeoutRef.current) {
+            clearTimeout(scrollTimeoutRef.current)
           }
+          
+          scrollTimeoutRef.current = setTimeout(() => {
+            if (scrollY > 10) {
+              setShowScrollIndicator(false)
+            } else {
+              setShowScrollIndicator(true)
+            }
+          }, 100) // 100ms debounce
           
           ticking = false
         })
@@ -140,7 +203,12 @@ export function CapsulePage() {
     }
     
     window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+    }
   }, [])
 
   // Loading screen
@@ -229,7 +297,8 @@ export function CapsulePage() {
         {showScrollIndicator && (
           <button 
             onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
-            className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white transition-all duration-300 hover:text-[#D04007] animate-bounce"
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white transition-all duration-300 hover:text-[#D04007] animate-bounce will-change-transform"
+            style={{ willChange: 'transform, opacity' }}
           >
             <span className="uppercase-headline" style={{ fontSize: '9px', letterSpacing: '0.2em' }}>
               SCROLL
@@ -258,7 +327,8 @@ export function CapsulePage() {
               backgroundPosition: 'center',
               filter: 'blur(60px) brightness(0.3) saturate(1.5)',
               opacity: 0.8,
-              willChange: 'auto'
+              willChange: 'transform',
+              transform: 'translateZ(0)' // Force GPU acceleration
             }}
           />
           

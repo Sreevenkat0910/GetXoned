@@ -20,7 +20,7 @@ import {
 } from "./ui/select";
 import { Switch } from "./ui/switch";
 import { CloudinaryUploader } from "./CloudinaryUploader";
-import { mockCapsules, Product } from "../utils/mockData";
+import { useAdmin, Product } from "../contexts/AdminContext";
 import { toast } from "sonner@2.0.3";
 
 interface ProductFormModalProps {
@@ -31,15 +31,18 @@ interface ProductFormModalProps {
 }
 
 export function ProductFormModal({ open, onClose, onSave, product }: ProductFormModalProps) {
+  const { capsules } = useAdmin();
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
     description: '',
     price: 0,
     capsuleId: '',
     capsuleName: '',
-    images: [],
+    image: [],
     stock: 0,
-    tags: [],
+    category: 'general',
+    size: [],
+    color: [],
     status: 'draft',
     isFeatured: false
   });
@@ -54,9 +57,11 @@ export function ProductFormModal({ open, onClose, onSave, product }: ProductForm
         price: 0,
         capsuleId: '',
         capsuleName: '',
-        images: [],
+        image: [],
         stock: 0,
-        tags: [],
+        category: 'general',
+        size: [],
+        color: [],
         status: 'draft',
         isFeatured: false
       });
@@ -71,7 +76,7 @@ export function ProductFormModal({ open, onClose, onSave, product }: ProductForm
       return;
     }
 
-    if (formData.images && formData.images.length === 0) {
+    if (formData.image && formData.image.length === 0) {
       toast.error('Please upload at least one product image');
       return;
     }
@@ -81,7 +86,7 @@ export function ProductFormModal({ open, onClose, onSave, product }: ProductForm
   };
 
   const handleCapsuleChange = (capsuleId: string) => {
-    const capsule = mockCapsules.find(c => c.id === capsuleId);
+    const capsule = capsules.find(c => c._id === capsuleId);
     setFormData({
       ...formData,
       capsuleId,
@@ -89,9 +94,8 @@ export function ProductFormModal({ open, onClose, onSave, product }: ProductForm
     });
   };
 
-  const handleTagsChange = (value: string) => {
-    const tags = value.split(',').map(tag => tag.trim()).filter(tag => tag);
-    setFormData({ ...formData, tags });
+  const handleCategoryChange = (value: string) => {
+    setFormData({ ...formData, category: value });
   };
 
   return (
@@ -173,8 +177,8 @@ export function ProductFormModal({ open, onClose, onSave, product }: ProductForm
                 <SelectValue placeholder="Select a capsule" />
               </SelectTrigger>
               <SelectContent>
-                {mockCapsules.map((capsule) => (
-                  <SelectItem key={capsule.id} value={capsule.id}>
+                {capsules.map((capsule) => (
+                  <SelectItem key={capsule._id} value={capsule._id}>
                     {capsule.name}
                   </SelectItem>
                 ))}
@@ -182,15 +186,22 @@ export function ProductFormModal({ open, onClose, onSave, product }: ProductForm
             </Select>
           </div>
 
-          {/* Tags */}
+          {/* Category */}
           <div className="space-y-2">
-            <Label htmlFor="tags">Tags (comma-separated)</Label>
-            <Input
-              id="tags"
-              value={formData.tags?.join(', ')}
-              onChange={(e) => handleTagsChange(e.target.value)}
-              placeholder="e.g., coat, winter, wool"
-            />
+            <Label htmlFor="category">Category</Label>
+            <Select value={formData.category} onValueChange={handleCategoryChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="general">General</SelectItem>
+                <SelectItem value="clothing">Clothing</SelectItem>
+                <SelectItem value="accessories">Accessories</SelectItem>
+                <SelectItem value="shoes">Shoes</SelectItem>
+                <SelectItem value="bags">Bags</SelectItem>
+                <SelectItem value="jewelry">Jewelry</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Status and Featured */}
@@ -229,8 +240,8 @@ export function ProductFormModal({ open, onClose, onSave, product }: ProductForm
               Product Images <span className="text-[#A00000]">*</span>
             </Label>
             <CloudinaryUploader
-              onUploadComplete={(urls) => setFormData({ ...formData, images: urls })}
-              existingImages={formData.images}
+              onUploadComplete={(urls) => setFormData({ ...formData, image: urls })}
+              existingImages={formData.image}
               maxFiles={5}
             />
           </div>

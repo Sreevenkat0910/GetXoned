@@ -1,8 +1,11 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { toast } from 'sonner@2.0.3';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
+import { useAuth } from '@clerk/clerk-react';
+import { useAuth as useAuthContext } from './AuthContext';
 
 export interface CartItem {
   id: string;
+  productId: string;
   name: string;
   price: number;
   image: string;
@@ -10,87 +13,412 @@ export interface CartItem {
   color: string;
   quantity: number;
   category: string;
+  addedAt?: string;
 }
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, 'quantity'>) => void;
-  removeItem: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
-  clearCart: () => void;
+  addItem: (item: Omit<CartItem, 'quantity' | 'id' | 'addedAt'>, quantity?: number, showToast?: boolean) => Promise<boolean>;
+  removeItem: (cartItemId: string) => Promise<boolean>;
+  updateQuantity: (cartItemId: string, quantity: number) => Promise<boolean>;
+  clearCart: () => Promise<boolean>;
   itemCount: number;
   subtotal: number;
+  loading: boolean;
+  syncCart: () => Promise<void>;
+  // Optimistic updates
+  optimisticAddItem: (item: Omit<CartItem, 'quantity' | 'id' | 'addedAt'>, quantity?: number) => void;
+  optimisticRemoveItem: (cartItemId: string) => void;
+  optimisticUpdateQuantity: (cartItemId: string, quantity: number) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(() => {
-    // Load cart from localStorage
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('xoned-cart');
-      return saved ? JSON.parse(saved) : [];
-    }
-    return [];
-  });
+  const [items, setItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { getToken, isSignedIn, userId } = useAuth();
+  const { login } = useAuthContext();
+  
+  // Performance optimizations
+  const debounceTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
+  const pendingOperations = useRef<Set<string>>(new Set());
 
-  // Save cart to localStorage whenever it changes
+  // Sync cart with backend when user logs in
   useEffect(() => {
-    localStorage.setItem('xoned-cart', JSON.stringify(items));
+    if (isSignedIn && userId) {
+      syncCart();
+    } else if (!isSignedIn) {
+      // Clear cart when user logs out
+      setItems([]);
+    }
+  }, [isSignedIn, userId]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(debounceTimeouts.current).forEach(timeout => {
+        clearTimeout(timeout);
+      });
+    };
+  }, []);
+
+  // Optimistic update functions for instant UI feedback
+  const optimisticAddItem = useCallback((newItem: Omit<CartItem, 'quantity' | 'id' | 'addedAt'>, quantity: number = 1) => {
+    const tempId = `temp_${Date.now()}_${Math.random()}`;
+    const optimisticItem: CartItem = {
+      ...newItem,
+      id: tempId,
+      quantity: quantity,
+    };
+    
+    setItems(prev => [...prev, optimisticItem]);
+    
+    // Show immediate feedback with quantity - ONLY in optimistic update
+    const quantityText = quantity > 1 ? ` (${quantity}x)` : '';
+    toast.success('Added to cart ✅', {
+      description: `${newItem.name}${quantityText} added successfully`
+    });
+  }, []);
+
+  const optimisticRemoveItem = useCallback((cartItemId: string) => {
+    const item = items.find(item => item.id === cartItemId);
+    if (item) {
+      setItems(prev => prev.filter(item => item.id !== cartItemId));
+      toast.info('Removed from cart', {
+        description: `${item.name} has been removed`
+      });
+    }
   }, [items]);
 
-  const addItem = (newItem: Omit<CartItem, 'quantity'>) => {
-    setItems(prevItems => {
-      const existingItem = prevItems.find(
-        item => item.id === newItem.id && item.size === newItem.size && item.color === newItem.color
-      );
+  const optimisticUpdateQuantity = useCallback((cartItemId: string, quantity: number) => {
+    setItems(prev => prev.map(item => 
+      item.id === cartItemId 
+        ? { ...item, quantity: Math.max(0, quantity) }
+        : item
+    ).filter(item => item.quantity > 0));
+  }, []);
 
-      if (existingItem) {
-        toast.success('Quantity updated', {
-          description: `${newItem.name} quantity increased`
-        });
-        return prevItems.map(item =>
-          item.id === existingItem.id && item.size === existingItem.size && item.color === existingItem.color
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
+  // Debounced API call function
+  const debouncedApiCall = useCallback((operation: string, apiCall: () => Promise<void>, delay: number = 300) => {
+    // Clear existing timeout for this operation
+    if (debounceTimeouts.current[operation]) {
+      clearTimeout(debounceTimeouts.current[operation]);
+    }
+    
+    // Set new timeout
+    debounceTimeouts.current[operation] = setTimeout(async () => {
+      try {
+        await apiCall();
+        pendingOperations.current.delete(operation);
+      } catch (error) {
+        console.error(`Debounced ${operation} failed:`, error);
+        pendingOperations.current.delete(operation);
       }
+    }, delay);
+  }, []);
 
-      toast.success('Added to cart', {
-        description: `${newItem.name} - ${newItem.size}`
+  const syncCart = async () => {
+    if (!isSignedIn || !userId) return;
+    
+    try {
+      setLoading(true);
+      const token = await getToken();
+      const base = (window as any).VITE_API_URL || 'http://localhost:4000';
+      
+      const response = await fetch(`${base}/api/cart/get`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId }),
       });
-      return [...prevItems, { ...newItem, quantity: 1 }];
-    });
-  };
 
-  const removeItem = (id: string) => {
-    setItems(prevItems => {
-      const item = prevItems.find(i => i.id === id);
-      if (item) {
-        toast.info('Removed from cart', {
-          description: item.name
-        });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.cartItems) {
+          setItems(data.cartItems);
+        }
       }
-      return prevItems.filter(item => item.id !== id);
-    });
+    } catch (error) {
+      console.error('Failed to sync cart:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateQuantity = (id: string, quantity: number) => {
-    if (quantity < 1) {
-      removeItem(id);
-      return;
+  const addItem = async (newItem: Omit<CartItem, 'quantity' | 'id' | 'addedAt'>, quantity: number = 1, showToast: boolean = false): Promise<boolean> => {
+    if (!isSignedIn) {
+      toast.error('Please log in to add items to your cart', {
+        description: 'You need to be signed in to add items to your cart.',
+        action: {
+          label: 'Login',
+          onClick: () => {
+            login();
+          }
+        }
+      });
+      return false;
     }
 
-    setItems(prevItems =>
-      prevItems.map(item =>
-        item.id === id ? { ...item, quantity } : item
-      )
-    );
+    if (!userId) return false;
+
+    // Only show optimistic update if not already shown
+    if (showToast) {
+      optimisticAddItem(newItem, quantity);
+    } else {
+      // Just update the UI without toast
+      const tempId = `temp_${Date.now()}_${Math.random()}`;
+      const optimisticItem: CartItem = {
+        ...newItem,
+        id: tempId,
+        quantity: quantity,
+      };
+      setItems(prev => [...prev, optimisticItem]);
+    }
+
+    // Debounced backend sync
+    const operationId = `add_${newItem.productId}_${newItem.size}_${newItem.color}`;
+    
+    // Prevent duplicate operations
+    if (pendingOperations.current.has(operationId)) {
+      return true; // Operation already in progress
+    }
+    
+    pendingOperations.current.add(operationId);
+
+    debouncedApiCall(operationId, async () => {
+      try {
+        const token = await getToken();
+        const base = (window as any).VITE_API_URL || 'http://localhost:4000';
+
+        // Add multiple quantities to backend
+        for (let i = 0; i < quantity; i++) {
+          const response = await fetch(`${base}/api/cart/add`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              userId,
+              itemId: newItem.productId,
+              size: newItem.size,
+              color: newItem.color || 'DEFAULT',
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to add to cart');
+          }
+
+          const data = await response.json();
+          if (!data.success) {
+            throw new Error(data.message || 'Failed to add to cart');
+          }
+        }
+
+        // Sync with backend to get real data
+        await syncCart();
+      } catch (error) {
+        console.error('Add to cart error:', error);
+        // Rollback optimistic update on error
+        setItems(prev => prev.filter(item => !item.id.startsWith('temp_')));
+        toast.error('Failed to add to cart', {
+          description: 'Please try again'
+        });
+      }
+    }, 100);
+
+    return true;
   };
 
-  const clearCart = () => {
+  const removeItem = async (cartItemId: string): Promise<boolean> => {
+    if (!isSignedIn || !userId) {
+      toast.error('Please log in to manage your cart', {
+        action: {
+          label: 'Login',
+          onClick: () => {
+            login();
+          }
+        }
+      });
+      return false;
+    }
+
+    // Optimistic update - show immediate feedback
+    optimisticRemoveItem(cartItemId);
+
+    // Debounced backend sync
+    const operationId = `remove_${cartItemId}`;
+    pendingOperations.current.add(operationId);
+
+    debouncedApiCall(operationId, async () => {
+      try {
+        const token = await getToken();
+        const base = (window as any).VITE_API_URL || 'http://localhost:4000';
+
+        // Find the cart item to get its details
+        const cartItem = items.find(item => item.id === cartItemId);
+        if (!cartItem) {
+          throw new Error('Cart item not found');
+        }
+
+        const response = await fetch(`${base}/api/cart/remove`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            userId,
+            itemId: cartItem.productId,
+            size: cartItem.size,
+            color: cartItem.color,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            await syncCart();
+          } else {
+            throw new Error(data.message || 'Failed to remove from cart');
+          }
+        } else {
+          throw new Error('Failed to remove from cart');
+        }
+      } catch (error) {
+        console.error('Remove from cart error:', error);
+        // Rollback optimistic update on error
+        await syncCart();
+        toast.error('Failed to remove item', {
+          description: 'Please try again'
+        });
+      }
+    }, 200);
+
+    return true;
+  };
+
+  const updateQuantity = async (cartItemId: string, quantity: number): Promise<boolean> => {
+    if (!isSignedIn || !userId) {
+      toast.error('Please log in to update your cart', {
+        action: {
+          label: 'Login',
+          onClick: () => {
+            login();
+          }
+        }
+      });
+      return false;
+    }
+
+    if (quantity <= 0) {
+      return await removeItem(cartItemId);
+    }
+
+    // Optimistic update - show immediate feedback
+    optimisticUpdateQuantity(cartItemId, quantity);
+
+    // Debounced backend sync
+    const operationId = `update_${cartItemId}`;
+    pendingOperations.current.add(operationId);
+
+    debouncedApiCall(operationId, async () => {
+      try {
+        const token = await getToken();
+        const base = (window as any).VITE_API_URL || 'http://localhost:4000';
+
+        // Find the cart item to get its details
+        const cartItem = items.find(item => item.id === cartItemId);
+        if (!cartItem) {
+          throw new Error('Cart item not found');
+        }
+
+        const response = await fetch(`${base}/api/cart/update`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            userId,
+            itemId: cartItem.productId,
+            size: cartItem.size,
+            quantity,
+            color: cartItem.color,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            await syncCart();
+          } else {
+            throw new Error(data.message || 'Failed to update quantity');
+          }
+        } else {
+          throw new Error('Failed to update quantity');
+        }
+      } catch (error) {
+        console.error('Update quantity error:', error);
+        // Rollback optimistic update on error
+        await syncCart();
+        toast.error('Failed to update quantity', {
+          description: 'Please try again'
+        });
+      }
+    }, 500); // Longer delay for quantity updates to handle rapid changes
+
+    return true;
+  };
+
+  const clearCart = async (): Promise<boolean> => {
+    if (!isSignedIn || !userId) {
+      toast.error('Please log in to clear your cart', {
+        action: {
+          label: 'Login',
+          onClick: () => {
+            login();
+          }
+        }
+      });
+      return false;
+    }
+
+    try {
+      setLoading(true);
+      const token = await getToken();
+      const base = (window as any).VITE_API_URL || 'http://localhost:4000';
+
+      const response = await fetch(`${base}/api/cart/clear`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
     setItems([]);
     toast.info('Cart cleared');
+          return true;
+        }
+      }
+      
+      throw new Error('Failed to clear cart');
+    } catch (error) {
+      console.error('Clear cart error:', error);
+      toast.error('Failed to clear cart');
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -106,6 +434,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         clearCart,
         itemCount,
         subtotal,
+        loading,
+        syncCart,
+        optimisticAddItem,
+        optimisticRemoveItem,
+        optimisticUpdateQuantity,
       }}
     >
       {children}

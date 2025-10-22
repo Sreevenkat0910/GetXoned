@@ -26,48 +26,33 @@ interface AppSidebarProps {
 
 const menuItems = [
   {
-    title: "Dashboard Overview",
+    title: "Dashboard",
     icon: LayoutDashboard,
     view: "dashboard"
   },
   {
-    title: "Products Management",
-    icon: Package,
-    view: "products"
-  },
-  {
-    title: "Capsules Management",
-    icon: Layers,
-    view: "capsules"
-  },
-  {
-    title: "Featured Items",
-    icon: Star,
-    view: "featured"
-  },
-  {
-    title: "Orders Management",
+    title: "Order Management",
     icon: ShoppingCart,
     view: "orders"
   },
   {
-    title: "Analytics",
-    icon: BarChart3,
-    view: "analytics"
+    title: "Product Management",
+    icon: Package,
+    view: "products"
   },
   {
-    title: "Settings",
-    icon: Settings,
-    view: "settings"
+    title: "Capsule Management",
+    icon: Layers,
+    view: "capsules"
   }
 ];
 
 export function AppSidebar({ activeView, onNavigate }: AppSidebarProps) {
   return (
-    <Sidebar className="border-r bg-white dark:bg-[#1a1a1a] border-gray-200 dark:border-gray-800">
-      <SidebarContent>
+    <Sidebar className="border-r bg-[#EDE9E4] border-gray-200">
+      <SidebarContent className="bg-[#EDE9E4]">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[#404040] dark:text-gray-400">
+          <SidebarGroupLabel className="text-[#404040]">
             Main Menu
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -82,15 +67,15 @@ export function AppSidebar({ activeView, onNavigate }: AppSidebarProps) {
                       className={`
                         group transition-all
                         ${isActive 
-                          ? 'bg-[#A00000] text-white hover:bg-[#A00000] hover:text-white' 
-                          : 'hover:bg-[#EAE7E2] dark:hover:bg-[#262930]'
+                          ? 'bg-[#e6e1db] text-black hover:bg-[#e6e1db] hover:text-black shadow-inner' 
+                          : 'hover:bg-[#EAE7E2]'
                         }
                       `}
                     >
-                      <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-[#404040] dark:text-gray-400'}`} />
-                      <span className={isActive ? 'text-white' : ''}>{item.title}</span>
+                      <item.icon className={`w-5 h-5 ${isActive ? 'text-black' : 'text-[#404040]'}`} />
+                      <span className={isActive ? 'text-black' : ''}>{item.title}</span>
                       {isActive && (
-                        <ChevronRight className="ml-auto w-4 h-4 text-white" />
+                        <ChevronRight className="ml-auto w-4 h-4 text-black" />
                       )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-// Using a simple alert for validation to avoid toast dependency here
+import { toast } from 'sonner';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { NavBar } from '../components/NavBar';
 import { Footer } from '../components/Footer';
@@ -7,7 +7,7 @@ import { ProductCard } from '../components/ProductCard';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { useCart } from '../components/CartContext';
 import { useWishlist } from '../components/WishlistContext';
-import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Truck, RotateCcw, Shield, Star } from 'lucide-react';
+import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Truck, RotateCcw, Shield, Star, Loader2 } from 'lucide-react';
 import { formatINR } from '../utils/format';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Separator } from '../components/ui/separator';
@@ -30,7 +30,7 @@ export function ProductDetailPage() {
   const { getToken } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [relatedProducts, setRelatedProducts] = useState([] as Related[]);
-  const { addItem } = useCart();
+  const { addItem, loading: cartLoading, optimisticAddItem } = useCart();
   const { addToWishlist, isInWishlist } = useWishlist();
   // Track hash changes reliably
   const [hash, setHash] = useState(() => window.location.hash)
@@ -51,7 +51,7 @@ export function ProductDetailPage() {
     (async () => {
       try {
         const token = await getToken().catch(() => undefined)
-        const base = (window as any).VITE_API_URL || 'http://localhost:5055'
+        const base = (window as any).VITE_API_URL || 'http://localhost:4000'
         // Prefer ID only if present and valid, else slug
         const idCandidate = isIdInPath ? slugFromPath : idFromQuery
         // Prefer ID first when a valid id is present in query or path → ensures price/data match with the clicked card
@@ -94,7 +94,7 @@ export function ProductDetailPage() {
     (async () => {
       try {
         const token = await getToken().catch(() => undefined)
-        const base = (window as any).VITE_API_URL || 'http://localhost:5055'
+        const base = (window as any).VITE_API_URL || 'http://localhost:4000'
         const res = await fetch(`${base}/api/product/list`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
         const data = await res.json()
         if (Array.isArray(data?.products)) {
@@ -133,23 +133,34 @@ export function ProductDetailPage() {
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!selectedSize) {
-      alert('Please select a size');
+      toast.error('Please select a size', {
+        description: 'Choose a size before adding to cart'
+      });
       return;
     }
-    
-    for (let i = 0; i < quantity; i++) {
-      addItem({
-        id: (product?._id || 'p') + '-' + selectedSize + '-' + (selectedColor?.colorName || 'default'),
-        name: product?.name || 'PRODUCT',
-        price: product?.price || 0,
-        image: (selectedColor?.images?.[0]) || images[0],
-        size: selectedSize,
-        color: selectedColor?.colorName || 'DEFAULT',
-        category: product?.category || 'GENERAL'
-      });
+
+    if (!product?._id) {
+      toast.error('Product not found');
+      return;
     }
+
+    // Add item with selected quantity (single call, no loop)
+    const itemData = {
+      productId: product._id,
+      name: product.name || 'PRODUCT',
+      price: product.price || 0,
+      image: (selectedColor?.images?.[0]) || images[0],
+      size: selectedSize,
+      color: selectedColor?.colorName || 'DEFAULT',
+      category: product.category || 'GENERAL'
+    };
+    
+    // Use optimistic update for instant feedback (shows toast)
+    optimisticAddItem(itemData, quantity);
+    // Call backend for persistence (no toast - already shown above)
+    await addItem(itemData, quantity, false);
   };
 
   const handleToggleWishlist = () => {
@@ -373,11 +384,20 @@ export function ProductDetailPage() {
               <div className="space-y-3 mb-6">
                 <button
                   onClick={handleAddToCart}
-                  className="w-full py-4 flex items-center justify-center gap-3 bg-black text-white uppercase-headline transition-all duration-300 hover:bg-[#D04007] hover:scale-[1.02]"
+                  disabled={cartLoading}
+                  className={`w-full py-4 flex items-center justify-center gap-3 uppercase-headline transition-all duration-300 ${
+                    cartLoading 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-black text-white hover:bg-[#D04007] hover:scale-[1.02]'
+                  }`}
                   style={{ fontSize: '12px', letterSpacing: '0.15em' }}
                 >
-                  <ShoppingCart size={18} />
-                  ADD TO CART
+                  {cartLoading ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <ShoppingCart size={18} />
+                  )}
+                  {cartLoading ? 'ADDING...' : 'ADD TO CART'}
                 </button>
 
                 <button

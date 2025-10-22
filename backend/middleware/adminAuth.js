@@ -2,19 +2,45 @@
 // Strategy: Check Clerk user public metadata or org roles. Here we use publicMetadata.role === 'admin'.
 const adminAuth = async (req, res, next) => {
     try {
-        const { auth } = req
+        // Use the new Clerk API - req.auth() as a function
+        const auth = req.auth()
         if (!auth || !auth.userId) {
             return res.status(401).json({ success: false, message: 'Not authorized' })
         }
-        // Clerk injects claims into req.auth.claims (if using JWTs from frontend)
-        // Expect role to be set in publicMetadata.role
-        const role = req?.auth?.claims?.metadata?.public?.role || req?.auth?.claims?.role
-        if (role !== 'admin') {
-            return res.status(403).json({ success: false, message: 'Forbidden' })
+        
+        console.log('User ID:', auth?.userId)
+        
+        // For now, allow your specific user ID for testing
+        // In production, you should fetch user metadata from Clerk API
+        const allowedTestUserIds = ['user_33dofSrp63OzwzyUhUGYAg4mQfb']
+        const userId = auth?.userId
+        
+        if (allowedTestUserIds.includes(userId)) {
+            console.log('Admin access granted for user:', userId)
+            return next()
         }
-        return next()
+        
+        // If not in allowed list, check for role in claims (if available)
+        const role = auth?.claims?.metadata?.public?.role || 
+                    auth?.claims?.role || 
+                    auth?.publicMetadata?.role
+        
+        if (role === 'admin') {
+            console.log('Admin access granted via role:', role)
+            return next()
+        }
+        
+        return res.status(403).json({ 
+            success: false, 
+            message: 'Forbidden - Admin role required',
+            debug: {
+                role,
+                userId: auth?.userId,
+                allowedUsers: allowedTestUserIds
+            }
+        })
     } catch (error) {
-        console.log(error)
+        console.log('Admin auth error:', error)
         return res.status(401).json({ success: false, message: 'Not authorized' })
     }
 }

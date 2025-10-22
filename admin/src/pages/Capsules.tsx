@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, MoreVertical, Edit, Trash2, Eye, Copy } from 'lucide-react';
+import { Search, Plus, MoreVertical, Edit, Trash2, Eye, Copy, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -37,12 +37,11 @@ import {
 import { Checkbox } from "../components/ui/checkbox";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { CapsuleFormModal } from "../components/CapsuleFormModal";
-import { mockCapsules, mockProducts, Capsule, Product } from "../utils/mockData";
+import { useAdmin, Capsule } from "../contexts/AdminContext";
 import { toast } from "sonner@2.0.3";
 
 export function Capsules() {
-  const [capsules, setCapsules] = useState(mockCapsules);
-  const [products, setProducts] = useState(mockProducts);
+  const { capsules, products, loading, addCapsule, updateCapsule, deleteCapsule } = useAdmin();
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCapsule, setEditingCapsule] = useState<Capsule | undefined>();
@@ -65,42 +64,36 @@ export function Capsules() {
     setIsModalOpen(true);
   };
 
-  const handleSaveCapsule = (capsuleData: Partial<Capsule>) => {
+  const handleSaveCapsule = async (capsuleData: Partial<Capsule>) => {
     if (editingCapsule) {
-      setCapsules(capsules.map(c => 
-        c.id === editingCapsule.id ? { ...c, ...capsuleData } : c
-      ));
-      toast.success('Capsule updated successfully');
+      const success = await updateCapsule(editingCapsule._id, capsuleData);
+      if (success) {
+        setIsModalOpen(false);
+      }
     } else {
-      const newCapsule: Capsule = {
-        id: `cap${Date.now()}`,
-        ...capsuleData,
-        productCount: 0,
-        createdAt: new Date().toISOString().split('T')[0]
-      } as Capsule;
-      setCapsules([newCapsule, ...capsules]);
-      toast.success('Capsule created successfully');
+      const success = await addCapsule(capsuleData);
+      if (success) {
+        setIsModalOpen(false);
+      }
     }
   };
 
-  const handleDeleteCapsule = () => {
+  const handleDeleteCapsule = async () => {
     if (selectedCapsule) {
-      setCapsules(capsules.filter(c => c.id !== selectedCapsule));
-      toast.success('Capsule deleted successfully');
-      setDeleteDialogOpen(false);
-      setSelectedCapsule(null);
+      const success = await deleteCapsule(selectedCapsule);
+      if (success) {
+        setDeleteDialogOpen(false);
+        setSelectedCapsule(null);
+      }
     }
   };
 
-  const handleDuplicateCapsule = (capsule: Capsule) => {
-    const duplicatedCapsule: Capsule = {
+  const handleDuplicateCapsule = async (capsule: Capsule) => {
+    const duplicatedCapsuleData = {
       ...capsule,
-      id: `cap${Date.now()}`,
       name: `${capsule.name} (Copy)`,
-      createdAt: new Date().toISOString().split('T')[0]
     };
-    setCapsules([duplicatedCapsule, ...capsules]);
-    toast.success('Capsule duplicated successfully');
+    await addCapsule(duplicatedCapsuleData);
   };
 
   const handleViewCapsule = (capsule: Capsule) => {
@@ -108,11 +101,11 @@ export function Capsules() {
     setViewCapsuleOpen(true);
   };
 
-  const handleToggleFeatured = (productId: string) => {
-    setProducts(products.map(p =>
-      p.id === productId ? { ...p, isFeatured: !p.isFeatured } : p
-    ));
-    toast.success('Featured status updated');
+  const handleToggleFeatured = async (productId: string) => {
+    const product = products.find(p => p._id === productId);
+    if (product) {
+      await updateProduct(productId, { isFeatured: !product.isFeatured });
+    }
   };
 
   const getCapsuleProducts = (capsuleId: string) => {
@@ -136,7 +129,7 @@ export function Capsules() {
       </div>
 
       {/* Search */}
-      <Card className="border-0 shadow-sm bg-white dark:bg-[#1a1a1a]">
+      <Card className="border-0 shadow-sm bg-[#F5F3F0]">
         <CardContent className="p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#404040] dark:text-gray-400" />
@@ -151,7 +144,7 @@ export function Capsules() {
       </Card>
 
       {/* Capsules Table */}
-      <Card className="border-0 shadow-sm bg-white dark:bg-[#1a1a1a]">
+      <Card className="border-0 shadow-sm bg-[#F5F3F0]">
         <CardHeader>
           <CardTitle className="text-[#262930] dark:text-white">
             All Capsules ({filteredCapsules.length})
@@ -170,62 +163,79 @@ export function Capsules() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCapsules.map((capsule) => (
-                <TableRow key={capsule.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <ImageWithFallback
-                        src={capsule.coverImage}
-                        alt={capsule.name}
-                        className="w-16 h-12 object-cover rounded"
-                      />
-                      <p className="text-sm text-[#262930] dark:text-white">{capsule.name}</p>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8">
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading capsules...
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-[#404040] dark:text-gray-400 max-w-xs truncate">
-                    {capsule.description}
-                  </TableCell>
-                  <TableCell className="text-sm text-[#262930] dark:text-white">
-                    {getCapsuleProducts(capsule.id).length} products
-                  </TableCell>
-                  <TableCell className="text-sm text-[#404040] dark:text-gray-400">
-                    {capsule.createdAt}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewCapsule(capsule)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Products
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditCapsule(capsule)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDuplicateCapsule(capsule)}>
-                          <Copy className="mr-2 h-4 w-4" />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedCapsule(capsule.id);
-                            setDeleteDialogOpen(true);
-                          }}
-                          className="text-[#A00000]"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                </TableRow>
+              ) : filteredCapsules.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-[#404040] dark:text-gray-400">
+                    No capsules found
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredCapsules.map((capsule) => (
+                  <TableRow key={capsule._id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <ImageWithFallback
+                          src={capsule.bannerUrl || '/placeholder-capsule.jpg'}
+                          alt={capsule.name}
+                          className="w-16 h-12 object-cover rounded"
+                        />
+                        <p className="text-sm text-[#262930] dark:text-white">{capsule.name}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-[#404040] dark:text-gray-400 max-w-xs truncate">
+                      {capsule.description}
+                    </TableCell>
+                    <TableCell className="text-sm text-[#262930] dark:text-white">
+                      {capsule.productCount || getCapsuleProducts(capsule._id).length} products
+                    </TableCell>
+                    <TableCell className="text-sm text-[#404040] dark:text-gray-400">
+                      {new Date(capsule.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewCapsule(capsule)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Products
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditCapsule(capsule)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDuplicateCapsule(capsule)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedCapsule(capsule._id);
+                              setDeleteDialogOpen(true);
+                            }}
+                            className="text-[#A00000]"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
           </div>
@@ -253,30 +263,30 @@ export function Capsules() {
           </DialogHeader>
           {viewingCapsule && (
             <div className="space-y-4">
-              {getCapsuleProducts(viewingCapsule.id).map((product) => (
+              {getCapsuleProducts(viewingCapsule._id).map((product) => (
                 <div
-                  key={product.id}
+                  key={product._id}
                   className="flex items-center gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
                 >
                   <ImageWithFallback
-                    src={product.images[0]}
+                    src={product.image?.[0] || '/placeholder-product.jpg'}
                     alt={product.name}
                     className="w-20 h-20 object-cover rounded"
                   />
                   <div className="flex-1">
                     <p className="text-sm text-[#262930] dark:text-white">{product.name}</p>
                     <p className="text-xs text-[#404040] dark:text-gray-400 mt-1">
-                      ${product.price.toFixed(2)} • Stock: {product.stock}
+                      ₹{product.price.toFixed(2)} • Stock: {product.stock}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Checkbox
-                      id={`featured-${product.id}`}
+                      id={`featured-${product._id}`}
                       checked={product.isFeatured}
-                      onCheckedChange={() => handleToggleFeatured(product.id)}
+                      onCheckedChange={() => handleToggleFeatured(product._id)}
                     />
                     <label
-                      htmlFor={`featured-${product.id}`}
+                      htmlFor={`featured-${product._id}`}
                       className="text-sm text-[#404040] dark:text-gray-400 cursor-pointer"
                     >
                       Featured
