@@ -6,6 +6,7 @@ This project is configured for deployment on Render.com with three services:
 
 ### 1. Backend API (xoned-backend)
 - **Type**: Web Service (Node.js)
+- **Plan**: Starter ($7/month)
 - **Build Command**: `cd backend && npm install`
 - **Start Command**: `cd backend && npm start`
 - **Port**: 10000
@@ -13,11 +14,13 @@ This project is configured for deployment on Render.com with three services:
 
 ### 2. Frontend (xoned-frontend)
 - **Type**: Static Site
+- **Plan**: Free
 - **Build Command**: `cd frontend && npm install && npm run build`
 - **Publish Path**: `./frontend/dist`
 
 ### 3. Admin Dashboard (xoned-admin)
 - **Type**: Static Site
+- **Plan**: Free
 - **Build Command**: `cd admin && npm install && npm run build`
 - **Publish Path**: `./admin/dist`
 
@@ -54,7 +57,9 @@ This project is configured for deployment on Render.com with three services:
 - Admin: `https://xoned-admin.onrender.com`
 
 ## Notes
-- All services use the free tier plan
+- Backend uses Starter plan ($7/month) for reliable web service hosting
+- Frontend and Admin use free static site hosting
 - The backend service will automatically connect to the MongoDB database
 - CORS is configured to allow requests from the frontend and admin domains
 - Static sites are served from the `dist` folders after build
+- Total monthly cost: $7 (backend only)
