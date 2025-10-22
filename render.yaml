@@ -37,7 +37,7 @@ services:
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: https://xoned-backend.onrender.com
+        value: https://getxoned.onrender.com
       - key: VITE_CLERK_PUBLISHABLE_KEY
         sync: false
 
@@ -50,7 +50,7 @@ services:
     staticPublishPath: ./admin/dist
     envVars:
       - key: VITE_API_URL
-        value: https://xoned-backend.onrender.com
+        value: https://getxoned.onrender.com
       - key: VITE_CLERK_PUBLISHABLE_KEY
         sync: false
 

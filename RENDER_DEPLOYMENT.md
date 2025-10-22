@@ -1,6 +1,6 @@
 # Render Deployment Guide
 
-This project is configured for deployment on Render.com with three services:
+This project is configured for **complete deployment on Render.com** with three services:
 
 ## Services
 
@@ -54,14 +54,16 @@ This project is configured for deployment on Render.com with three services:
 4. Deploy all services
 
 ## URLs After Deployment
-- Backend API: `https://xoned-backend.onrender.com`
+- Backend API: `https://getxoned.onrender.com` ✅ (Already deployed)
 - Frontend: `https://xoned-frontend.onrender.com`
 - Admin: `https://xoned-admin.onrender.com`
 
 ## Notes
+- **Complete Render deployment** - all services hosted on Render
 - Backend uses Starter plan ($7/month) for reliable web service hosting
 - Frontend and Admin use free static site hosting
 - The backend service will automatically connect to the MongoDB database
 - CORS is configured to allow requests from the frontend and admin domains
 - Static sites are served from the `dist` folders after build
-- Total monthly cost: $7 (backend only)
+- **Total monthly cost: $7** (backend only, frontend/admin are free)
+- **Backend is already live**: https://getxoned.onrender.com
