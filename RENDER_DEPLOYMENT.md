@@ -13,13 +13,15 @@ This project is configured for deployment on Render.com with three services:
 - **Database**: MongoDB (xoned-db)
 
 ### 2. Frontend (xoned-frontend)
-- **Type**: Static Site
+- **Type**: Web Service (Static)
+- **Environment**: static
 - **Plan**: Free
 - **Build Command**: `cd frontend && npm install && npm run build`
 - **Publish Path**: `./frontend/dist`
 
 ### 3. Admin Dashboard (xoned-admin)
-- **Type**: Static Site
+- **Type**: Web Service (Static)
+- **Environment**: static
 - **Plan**: Free
 - **Build Command**: `cd admin && npm install && npm run build`
 - **Publish Path**: `./admin/dist`

@@ -29,8 +29,10 @@ services:
         value: https://xoned-frontend.onrender.com,https://xoned-admin.onrender.com
 
   # Frontend Static Site
-  - type: static
+  - type: web
     name: xoned-frontend
+    env: static
+    plan: free
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: ./frontend/dist
     envVars:
@@ -40,8 +42,10 @@ services:
         sync: false
 
   # Admin Dashboard Static Site
-  - type: static
+  - type: web
     name: xoned-admin
+    env: static
+    plan: free
     buildCommand: cd admin && npm install && npm run build
     staticPublishPath: ./admin/dist
     envVars:
