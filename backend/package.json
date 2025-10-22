@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "server": "nodemon server.js",
+    "dev": "nodemon server.js",
+    "build": "echo 'No build step required for Node.js backend'",
     "upload:images": "node scripts/uploadCloudinaryFromImages.js",
     "cleanup:old": "node scripts/cleanupOldProducts.js",
     "upload:shiva": "node scripts/uploadShivaImages.js",

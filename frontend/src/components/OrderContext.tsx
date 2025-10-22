@@ -56,7 +56,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const base = (window as any).VITE_API_URL || 'http://localhost:4000';
+  const base = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
   const fetchOrders = useCallback(async () => {
     if (!isSignedIn || !userId) {
