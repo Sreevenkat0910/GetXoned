@@ -5,6 +5,10 @@
 
   export default defineConfig({
     plugins: [react()],
+    define: {
+      'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'https://getxoned.onrender.com'),
+      'import.meta.env.VITE_CLERK_PUBLISHABLE_KEY': JSON.stringify(process.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_dml0YWwtZHJ1bS0zLmNsZXJrLmFjY291bnRzLmRldiQ'),
+    },
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {
