@@ -11,9 +11,7 @@ services:
       - key: PORT
         value: 10000
       - key: MONGODB_URI
-        fromDatabase:
-          name: xoned-db
-          property: connectionString
+        sync: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
