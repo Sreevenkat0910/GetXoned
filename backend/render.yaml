@@ -23,7 +23,7 @@ services:
       - key: CLERK_SECRET_KEY
         sync: false
       - key: CORS_ORIGINS
-        value: https://xoned-frontend.onrender.com,https://xoned-admin.onrender.com
+        value: https://getxoned-frontend.onrender.com,https://getxoned-admin.onrender.com
 
 databases:
   - name: xoned-db
