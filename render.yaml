@@ -39,7 +39,7 @@ services:
       - key: VITE_API_URL
         value: https://xoned-backend.onrender.com
       - key: VITE_CLERK_PUBLISHABLE_KEY
-        sync: false
+        value: pk_test_dml0YWwtZHJ1bS0zLmNsZXJrLmFjY291bnRzLmRldiQ
 
   # Admin Dashboard Static Site
   - type: web
@@ -52,7 +52,7 @@ services:
       - key: VITE_API_URL
         value: https://xoned-backend.onrender.com
       - key: VITE_CLERK_PUBLISHABLE_KEY
-        sync: false
+        value: pk_test_dml0YWwtZHJ1bS0zLmNsZXJrLmFjY291bnRzLmRldiQ
 
 databases:
   - name: xoned-db
