@@ -3,10 +3,10 @@ services:
     name: xoned-frontend
     env: static
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && VITE_API_URL=https://getxoned.onrender.com VITE_CLERK_PUBLISHABLE_KEY=pk_test_dml0YWwtZHJ1bS0zLmNsZXJrLmFjY291bnRzLmRldiQ npm run build
     staticPublishPath: ./dist
     envVars:
       - key: VITE_API_URL
-        value: https://xoned-backend.onrender.com
+        value: https://getxoned.onrender.com
       - key: VITE_CLERK_PUBLISHABLE_KEY
         value: pk_test_dml0YWwtZHJ1bS0zLmNsZXJrLmFjY291bnRzLmRldiQ
