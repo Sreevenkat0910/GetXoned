@@ -256,8 +256,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
             throw new Error(data.message || 'Failed to add to cart');
           }
 
-        // Sync with backend to get real data
-        await syncCart();
+          // Sync with backend to get real data
+          await syncCart();
       } catch (error) {
         console.error('Add to cart error:', error);
         // Rollback optimistic update on error

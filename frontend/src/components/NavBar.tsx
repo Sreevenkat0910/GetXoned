@@ -1,15 +1,19 @@
 import { useState } from 'react';
-import { Search, Heart, ShoppingCart, Menu, X } from 'lucide-react';
+import { Search, Heart, ShoppingCart, Menu, X, User, LogOut } from 'lucide-react';
 import { CartSidebar } from './CartSidebar';
 import { WishlistDropdown } from './WishlistDropdown';
 import { AuthDropdown } from './AuthDropdown';
 import { useCart } from './CartContext';
+import { useAuth } from '@clerk/clerk-react';
+import { useAuth as useAuthContext } from './AuthContext';
 import logoImage from 'figma:asset/63e4e15218776129690de7149a14041fbae47d13.png';
 
 export function NavBar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { itemCount } = useCart();
+  const { isSignedIn, signOut } = useAuth();
+  const { login } = useAuthContext();
 
   return (
     <>
@@ -147,6 +151,59 @@ export function NavBar() {
           </a>
           <div className="pt-2">
             <WishlistDropdown itemCount={3} />
+          </div>
+          
+          {/* Mobile Authentication Section */}
+          <div className="pt-4 border-t border-white/20">
+            {isSignedIn ? (
+              <div className="space-y-3">
+                <a 
+                  href="#account" 
+                  className="flex items-center gap-3 uppercase-headline transition-smooth hover:text-[#D04007] py-2"
+                  style={{ fontSize: '12px' }}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <User size={16} />
+                  MY ACCOUNT
+                </a>
+                <button 
+                  onClick={() => {
+                    signOut();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 uppercase-headline transition-smooth hover:text-[#D04007] py-2 w-full text-left"
+                  style={{ fontSize: '12px' }}
+                >
+                  <LogOut size={16} />
+                  SIGN OUT
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <button 
+                  onClick={() => {
+                    login();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 uppercase-headline transition-smooth hover:text-[#D04007] py-2 w-full text-left"
+                  style={{ fontSize: '12px' }}
+                >
+                  <User size={16} />
+                  SIGN IN
+                </button>
+                <button 
+                  onClick={() => {
+                    login();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 uppercase-headline transition-smooth hover:text-[#D04007] py-2 w-full text-left"
+                  style={{ fontSize: '12px' }}
+                >
+                  <User size={16} />
+                  SIGN UP
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
