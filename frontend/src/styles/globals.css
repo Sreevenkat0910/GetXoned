@@ -386,6 +386,7 @@ img {
   max-width: 1200px;
   margin: 0 auto;
   min-height: 600px;
+  width: 100%;
 }
 
 /* Responsive grid adjustments */
@@ -393,6 +394,7 @@ img {
   .masonry-grid {
     gap: 20px;
     grid-template-rows: repeat(12, minmax(80px, auto));
+    max-width: 1400px;
   }
 }
 

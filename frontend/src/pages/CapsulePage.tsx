@@ -352,7 +352,9 @@ export function CapsulePage() {
                 <div className="h-px w-24 bg-gradient-to-r from-transparent via-[#D04007] to-transparent mx-auto opacity-60" />
               </div>
               
-              <CapsuleGrid />
+              <div className="flex justify-center">
+                <CapsuleGrid />
+              </div>
               
               {/* Bottom note (CTA removed) */}
               <div className="text-center mt-20">
