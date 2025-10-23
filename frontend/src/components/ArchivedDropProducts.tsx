@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ProductCard } from './ProductCard';
 import { Lock } from 'lucide-react';
 import { useAuth } from '@clerk/clerk-react';
+import { fetchAPI } from '../utils/api';
 
 interface ArchivedDropProductsProps {
   dropCode: number;
@@ -16,10 +17,9 @@ export function ArchivedDropProducts({ dropCode }: ArchivedDropProductsProps) {
     const fetchProducts = async () => {
       try {
         const token = await getToken().catch(() => undefined);
-        const res = await fetch(`${(import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com'}/api/product/drop/${dropCode}`, {
+        const data = await fetchAPI(`/api/product/drop/${dropCode}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
-        const data = await res.json();
         
         if (data.success) {
           setProducts(data.products || []);

@@ -10,6 +10,7 @@ import { Lock, Archive, Clock, ChevronDown } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { useAuth } from '@clerk/clerk-react';
+import { fetchAPI } from '../utils/api';
 
 // Past collection data
 const collections = [
@@ -196,10 +197,9 @@ export function VaultPage() {
     const fetchArchivedDrops = async () => {
       try {
         const token = await getToken().catch(() => undefined);
-        const res = await fetch(`${(import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com'}/api/drop/archived`, {
+        const data = await fetchAPI('/api/drop/archived', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
-        const data = await res.json();
         
         if (data.success) {
           setArchivedDrops(data.drops || []);

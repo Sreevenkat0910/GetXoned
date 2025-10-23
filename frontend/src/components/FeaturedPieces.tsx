@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { ProductCard } from './ProductCard';
 import { LoadingSpinner } from './LoadingSpinner';
+import { fetchAPI } from '../utils/api';
 
 export function FeaturedPieces() {
   const [items, setItems] = useState([])
@@ -12,10 +13,9 @@ export function FeaturedPieces() {
     (async () => {
       try {
         const token = await getToken().catch(() => undefined)
-        const res = await fetch(`${(import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com'}/api/product/current-drop`, {
+        const data = await fetchAPI('/api/product/current-drop', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         })
-        const data = await res.json()
         
         // Add console.log to debug
         console.log('Current drop products fetched:', data.products)
