@@ -1,5 +1,15 @@
 @custom-variant dark (&:is(.dark *));
 
+/* Loading Animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 :root {
   /* XONED Brand Colors */
   --xoned-bg: #f9f7f0;

@@ -29,7 +29,22 @@ export function NavigationProvider({ children }: { children: any }) {
       {isLoading && (
         <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-[#D04007] mx-auto"></div>
+            <div className="relative">
+              {/* Outer spinning ring */}
+              <div 
+                className="rounded-full h-12 w-12 border-4 border-gray-200 border-t-[#D04007] mx-auto"
+                style={{
+                  animation: 'spin 1s linear infinite'
+                }}
+              ></div>
+              {/* Inner spinning dot */}
+              <div 
+                className="absolute top-1/2 left-1/2 w-2 h-2 bg-[#D04007] rounded-full transform -translate-x-1/2 -translate-y-1/2"
+                style={{
+                  animation: 'spin 0.5s linear infinite reverse'
+                }}
+              ></div>
+            </div>
             <p className="mt-4 text-[#262930] opacity-70 uppercase-headline" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
               LOADING
             </p>
