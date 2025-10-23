@@ -115,7 +115,7 @@ export function CheckoutPage() {
   const createRazorpayOrder = async () => {
     try {
       const token = await getToken();
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const base = import.meta.env.VITE_API_URL || 'http://https://getxoned.onrender.com';
 
       const currentAddress = selectedAddress;
       
@@ -154,7 +154,7 @@ export function CheckoutPage() {
   const verifyPayment = async (paymentData: any) => {
     try {
       const token = await getToken();
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const base = import.meta.env.VITE_API_URL || 'http://https://getxoned.onrender.com';
 
       const response = await fetch(`${base}/api/order/verifyRazorpay`, {
         method: 'POST',
@@ -185,7 +185,7 @@ export function CheckoutPage() {
   const createSimulatedOrder = async () => {
     try {
       const token = await getToken();
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const base = import.meta.env.VITE_API_URL || 'http://https://getxoned.onrender.com';
 
       const response = await fetch(`${base}/api/order/simulate`, {
         method: 'POST',

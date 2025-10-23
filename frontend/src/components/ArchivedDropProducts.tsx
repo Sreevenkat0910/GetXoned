@@ -16,7 +16,7 @@ export function ArchivedDropProducts({ dropCode }: ArchivedDropProductsProps) {
     const fetchProducts = async () => {
       try {
         const token = await getToken().catch(() => undefined);
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/product/drop/${dropCode}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://https://getxoned.onrender.com'}/api/product/drop/${dropCode}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
         const data = await res.json();

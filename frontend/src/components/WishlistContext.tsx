@@ -114,7 +114,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const token = await getToken();
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const base = import.meta.env.VITE_API_URL || 'http://https://getxoned.onrender.com';
 
       const response = await fetch(`${base}/api/wishlist/get`, {
         method: 'POST',
@@ -171,7 +171,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     debouncedApiCall(operationId, async () => {
       try {
         const token = await getToken();
-        const base = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+        const base = import.meta.env.VITE_API_URL || 'http://https://getxoned.onrender.com';
 
         const response = await fetch(`${base}/api/wishlist/add`, {
           method: 'POST',
@@ -231,7 +231,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     debouncedApiCall(operationId, async () => {
       try {
         const token = await getToken();
-        const base = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+        const base = import.meta.env.VITE_API_URL || 'http://https://getxoned.onrender.com';
 
         const response = await fetch(`${base}/api/wishlist/remove`, {
           method: 'POST',
@@ -284,7 +284,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const token = await getToken();
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const base = import.meta.env.VITE_API_URL || 'http://https://getxoned.onrender.com';
 
       const response = await fetch(`${base}/api/wishlist/clear`, {
         method: 'POST',
