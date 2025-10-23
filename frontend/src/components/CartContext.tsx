@@ -74,20 +74,37 @@ export function CartProvider({ children }: { children: ReactNode }) {
       );
 
       if (existingItemIndex !== -1) {
+        // Check if adding this quantity would exceed the limit
+        const newQuantity = prev[existingItemIndex].quantity + quantity;
+        if (newQuantity > 6) {
+          toast.error('Maximum quantity reached', {
+            description: 'You can only add up to 6 of the same product to your cart.'
+          });
+          return prev; // Don't update if it would exceed limit
+        }
+        
         // Update existing item quantity
         const updatedItems = [...prev];
         updatedItems[existingItemIndex] = {
           ...updatedItems[existingItemIndex],
-          quantity: updatedItems[existingItemIndex].quantity + quantity
+          quantity: newQuantity
         };
         
         // Show feedback for quantity update
         toast.success('Updated cart ✅', {
-          description: `${newItem.name} quantity increased to ${updatedItems[existingItemIndex].quantity}`
+          description: `${newItem.name} quantity increased to ${newQuantity}`
         });
         
         return updatedItems;
       } else {
+        // Check quantity limit for new items
+        if (quantity > 6) {
+          toast.error('Maximum quantity exceeded', {
+            description: 'You can only add up to 6 of the same product to your cart.'
+          });
+          return prev; // Don't add if it exceeds limit
+        }
+        
         // Add new item
         const tempId = `temp_${Date.now()}_${Math.random()}`;
         const optimisticItem: CartItem = {
@@ -120,7 +137,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const optimisticUpdateQuantity = useCallback((cartItemId: string, quantity: number) => {
     setItems(prev => prev.map(item => 
       item.id === cartItemId 
-        ? { ...item, quantity: Math.max(0, quantity) }
+        ? { ...item, quantity: Math.max(0, Math.min(6, quantity)) } // Enforce max 6 items
         : item
     ).filter(item => item.quantity > 0));
   }, []);
@@ -198,8 +215,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
 
     if (existingItem) {
+      // Check if adding this quantity would exceed the limit
+      const newQuantity = existingItem.quantity + quantity;
+      if (newQuantity > 6) {
+        toast.error('Maximum quantity reached', {
+          description: 'You can only add up to 6 of the same product to your cart.'
+        });
+        return false;
+      }
       // If item exists, just update the quantity
-      return await updateQuantity(existingItem.id, existingItem.quantity + quantity);
+      return await updateQuantity(existingItem.id, newQuantity);
+    }
+
+    // Check quantity limit for new items
+    if (quantity > 6) {
+      toast.error('Maximum quantity exceeded', {
+        description: 'You can only add up to 6 of the same product to your cart.'
+      });
+      return false;
     }
 
     // Only show optimistic update if not already shown
@@ -354,6 +387,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     if (quantity <= 0) {
       return await removeItem(cartItemId);
+    }
+
+    // Check maximum quantity limit
+    if (quantity > 6) {
+      toast.error('Maximum quantity reached', {
+        description: 'You can only add up to 6 of the same product to your cart.'
+      });
+      return false;
     }
 
     // Optimistic update - show immediate feedback
