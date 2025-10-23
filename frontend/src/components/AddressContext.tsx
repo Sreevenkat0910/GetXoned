@@ -30,10 +30,10 @@ interface AddressContextType {
   setDefaultAddress: (addressId: string) => Promise<boolean>;
 }
 
-const AddressContext = createContext<AddressContextType | undefined>(undefined);
+const AddressContext = createContext(undefined);
 
-export function AddressProvider({ children }: { children: React.ReactNode }) {
-  const [addresses, setAddresses] = useState<Address[]>([]);
+export function AddressProvider({ children }: { children: any }) {
+  const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(false);
   const { isSignedIn, userId, getToken } = useAuth();
   const { login } = useAuthContext();

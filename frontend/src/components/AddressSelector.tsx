@@ -38,8 +38,8 @@ export function AddressSelector({ selectedAddress, onAddressSelect, onAddressCha
     isDefault: false
   });
   
-  const [newAddressErrors, setNewAddressErrors] = useState<Record<string, string>>({});
-  const [editingAddressErrors, setEditingAddressErrors] = useState<Record<string, string>>({});
+  const [newAddressErrors, setNewAddressErrors] = useState({});
+  const [editingAddressErrors, setEditingAddressErrors] = useState({});
 
   const validateAddressForm = (address: any, isEdit = false) => {
     const errors: Record<string, string> = {};
