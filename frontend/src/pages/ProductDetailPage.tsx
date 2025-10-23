@@ -51,7 +51,7 @@ export function ProductDetailPage() {
     (async () => {
       try {
         const token = await getToken().catch(() => undefined)
-        const base = import.meta.env.VITE_API_URL || 'http://https://getxoned.onrender.com'
+        const base = import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com'
         // Prefer ID only if present and valid, else slug
         const idCandidate = isIdInPath ? slugFromPath : idFromQuery
         // Prefer ID first when a valid id is present in query or path → ensures price/data match with the clicked card
@@ -94,7 +94,7 @@ export function ProductDetailPage() {
     (async () => {
       try {
         const token = await getToken().catch(() => undefined)
-        const base = import.meta.env.VITE_API_URL || 'http://https://getxoned.onrender.com'
+        const base = import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com'
         const res = await fetch(`${base}/api/product/list`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
         const data = await res.json()
         if (Array.isArray(data?.products)) {

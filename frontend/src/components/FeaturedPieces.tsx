@@ -12,7 +12,7 @@ export function FeaturedPieces() {
     (async () => {
       try {
         const token = await getToken().catch(() => undefined)
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://https://getxoned.onrender.com'}/api/product/current-drop`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com'}/api/product/current-drop`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         })
         const data = await res.json()

@@ -196,7 +196,7 @@ export function VaultPage() {
     const fetchArchivedDrops = async () => {
       try {
         const token = await getToken().catch(() => undefined);
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://https://getxoned.onrender.com'}/api/drop/archived`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com'}/api/drop/archived`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
         const data = await res.json();
