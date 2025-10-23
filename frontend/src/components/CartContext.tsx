@@ -65,19 +65,45 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Optimistic update functions for instant UI feedback
   const optimisticAddItem = useCallback((newItem: Omit<CartItem, 'quantity' | 'id' | 'addedAt'>, quantity: number = 1) => {
-    const tempId = `temp_${Date.now()}_${Math.random()}`;
-    const optimisticItem: CartItem = {
-      ...newItem,
-      id: tempId,
-      quantity: quantity,
-    };
-    
-    setItems(prev => [...prev, optimisticItem]);
-    
-    // Show immediate feedback with quantity - ONLY in optimistic update
-    const quantityText = quantity > 1 ? ` (${quantity}x)` : '';
-    toast.success('Added to cart ✅', {
-      description: `${newItem.name}${quantityText} added successfully`
+    setItems(prev => {
+      // Check if item already exists
+      const existingItemIndex = prev.findIndex(item => 
+        item.productId === newItem.productId && 
+        item.size === newItem.size && 
+        item.color === newItem.color
+      );
+
+      if (existingItemIndex !== -1) {
+        // Update existing item quantity
+        const updatedItems = [...prev];
+        updatedItems[existingItemIndex] = {
+          ...updatedItems[existingItemIndex],
+          quantity: updatedItems[existingItemIndex].quantity + quantity
+        };
+        
+        // Show feedback for quantity update
+        toast.success('Updated cart ✅', {
+          description: `${newItem.name} quantity increased to ${updatedItems[existingItemIndex].quantity}`
+        });
+        
+        return updatedItems;
+      } else {
+        // Add new item
+        const tempId = `temp_${Date.now()}_${Math.random()}`;
+        const optimisticItem: CartItem = {
+          ...newItem,
+          id: tempId,
+          quantity: quantity,
+        };
+        
+        // Show feedback for new item
+        const quantityText = quantity > 1 ? ` (${quantity}x)` : '';
+        toast.success('Added to cart ✅', {
+          description: `${newItem.name}${quantityText} added successfully`
+        });
+        
+        return [...prev, optimisticItem];
+      }
     });
   }, []);
 
@@ -164,6 +190,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     if (!userId) return false;
 
+    // Check if item already exists in cart
+    const existingItem = items.find(item => 
+      item.productId === newItem.productId && 
+      item.size === newItem.size && 
+      item.color === newItem.color
+    );
+
+    if (existingItem) {
+      // If item exists, just update the quantity
+      return await updateQuantity(existingItem.id, existingItem.quantity + quantity);
+    }
+
     // Only show optimistic update if not already shown
     if (showToast) {
       optimisticAddItem(newItem, quantity);
@@ -193,9 +231,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const token = await getToken();
         const base = (import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com';
 
-        // Add multiple quantities to backend
-        for (let i = 0; i < quantity; i++) {
-          const response = await fetch(`${base}/api/cart/add`, {
+        // Add single item with quantity to backend
+        const response = await fetch(`${base}/api/cart/add`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -206,6 +243,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
               itemId: newItem.productId,
               size: newItem.size,
               color: newItem.color || 'DEFAULT',
+              quantity: quantity, // Send quantity in the request
             }),
           });
 
@@ -217,7 +255,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
           if (!data.success) {
             throw new Error(data.message || 'Failed to add to cart');
           }
-        }
 
         // Sync with backend to get real data
         await syncCart();
