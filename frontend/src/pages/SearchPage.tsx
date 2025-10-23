@@ -9,6 +9,7 @@ import { Checkbox } from '../components/ui/checkbox';
 import { Button } from '../components/ui/button';
 import { useAuth } from '@clerk/clerk-react';
 import { toast } from 'sonner';
+import { PageLoader } from '../components/PageLoader';
 
 interface Product {
   _id: string;
@@ -356,10 +357,8 @@ export function SearchPage() {
 
           {/* Results */}
           {loading ? (
-            <div className="text-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[#D04007]" />
-              <h3 className="text-xl font-semibold text-[#262930] mb-2">Searching...</h3>
-              <p className="text-[#666]">Finding products that match your criteria</p>
+            <div className="py-20">
+              <PageLoader message="SEARCHING PRODUCTS" size="md" />
             </div>
           ) : error ? (
             <div className="text-center py-20">

@@ -8,6 +8,7 @@ import { Package, TrendingUp, ChevronDown } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { fetchAPI } from '../utils/api';
+import { PageLoader } from '../components/PageLoader';
 
 const CapsuleGrid = React.memo(() => {
   const [items, setItems] = useState([] as any[])
@@ -209,8 +210,8 @@ export function CapsulePage() {
   // Loading screen
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <LoadingSpinner size="lg" text="LOADING CAPSULE" />
+      <div className="min-h-screen bg-black">
+        <PageLoader message="LOADING CAPSULE" size="lg" />
       </div>
     )
   }

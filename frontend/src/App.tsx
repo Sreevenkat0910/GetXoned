@@ -6,6 +6,7 @@ import { WishlistProvider } from './components/WishlistContext';
 import { CartProvider } from './components/CartContext';
 import { AddressProvider } from './components/AddressContext';
 import { OrderProvider } from './components/OrderContext';
+import { NavigationProvider } from './components/NavigationLoader';
 import { Toaster } from './components/ui/sonner';
 import { ScrollToTop } from './components/ScrollToTop';
 import { useKeyboardShortcuts } from './components/KeyboardShortcuts';
@@ -47,11 +48,12 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <WishlistProvider>
-          <CartProvider>
-            <AddressProvider>
-              <OrderProvider>
+      <NavigationProvider>
+        <AuthProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <AddressProvider>
+                <OrderProvider>
                 {currentPage === 'home' && <HomePage />}
                 {currentPage === 'capsule' && <CapsulePage />}
                 {currentPage === 'search' && <SearchPage />}
@@ -63,11 +65,12 @@ export default function App() {
                 {currentPage === 'checkout' && <CheckoutPage />}
                 <ScrollToTop currentPage={currentPage} />
                 <Toaster />
-              </OrderProvider>
-            </AddressProvider>
-          </CartProvider>
-        </WishlistProvider>
-      </AuthProvider>
+                </OrderProvider>
+              </AddressProvider>
+            </CartProvider>
+          </WishlistProvider>
+        </AuthProvider>
+      </NavigationProvider>
     </ErrorBoundary>
   );
 }

@@ -4,6 +4,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { formatINR } from '@/utils/format';
 import { useWishlist } from './WishlistContext';
 import { useAuth } from '@clerk/clerk-react';
+import { useNavigation } from './NavigationLoader';
 
 interface ProductCardProps {
   id?: string;
@@ -30,6 +31,7 @@ export function ProductCard({
 }: ProductCardProps) {
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { isSignedIn } = useAuth();
+  const { navigateWithLoading } = useNavigation();
   const [isHovered, setIsHovered] = useState(false);
   
   const isWishlisted = id ? isInWishlist(id) : false;
@@ -42,7 +44,7 @@ export function ProductCard({
     const derivedSlug = slug || name.toLowerCase().replace(/\s+/g,'-');
     // Prefer slug route for readability; include id as query fallback
     const search = id ? `?id=${encodeURIComponent(id)}` : '';
-    window.location.hash = `product/${derivedSlug}${search}`;
+    navigateWithLoading(`#product/${derivedSlug}${search}`);
   };
 
   const handleWishlistToggle = async (e: React.MouseEvent) => {

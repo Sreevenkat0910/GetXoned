@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { useAuth } from '@clerk/clerk-react';
 import { fetchAPI } from '../utils/api';
+import { PageLoader } from '../components/PageLoader';
 
 // Past collection data
 const collections = [
@@ -225,6 +226,14 @@ export function VaultPage() {
   });
 
   const years = ['2025', '2024', '2023', '2022'];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a]">
+        <PageLoader message="LOADING VAULT" size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a]">

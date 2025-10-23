@@ -12,6 +12,7 @@ import { formatINR } from '../utils/format';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Separator } from '../components/ui/separator';
 import { useAuth } from '@clerk/clerk-react';
+import { ProductLoader } from '../components/PageLoader';
 
 const fallbackImages = [
   'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=1080&q=80',
@@ -177,6 +178,10 @@ export function ProductDetailPage() {
       });
     }
   };
+
+  if (loading) {
+    return <ProductLoader />;
+  }
 
   return (
     <div className="min-h-screen">
