@@ -23,7 +23,7 @@ export function AddressSelector({ selectedAddress, onAddressSelect, onAddressCha
   const { login } = useAuthContext();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingAddress, setEditingAddress] = useState<any>(null);
+  const [editingAddress, setEditingAddress] = useState(null);
   const [newAddress, setNewAddress] = useState({
     firstName: '',
     lastName: '',
