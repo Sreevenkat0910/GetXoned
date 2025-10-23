@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Separator } from '../components/ui/separator';
 import { useAuth } from '@clerk/clerk-react';
 import { ProductLoader } from '../components/PageLoader';
+import { fetchAPI } from '../utils/api';
 
 const fallbackImages = [
   'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=1080&q=80',
@@ -49,35 +50,51 @@ export function ProductDetailPage() {
   const isValidObjectId = (id:string) => /^[a-f\d]{24}$/i.test(id)
 
   useEffect(() => {
+    // Set a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.log('Product loading timeout - setting loading to false');
+        setLoading(false);
+      }
+    }, 10000); // 10 second timeout
+
     (async () => {
       try {
         const token = await getToken().catch(() => undefined)
-        const base = (import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com'
         // Prefer ID only if present and valid, else slug
         const idCandidate = isIdInPath ? slugFromPath : idFromQuery
         // Prefer ID first when a valid id is present in query or path → ensures price/data match with the clicked card
         const tryIdFirst = !!(((idFromQuery && isValidObjectId(idFromQuery)) || (isIdInPath && isValidObjectId(idCandidate))))
-        let res: Response | null = null
+        let data: any = null
         if (tryIdFirst) {
           const idToUse = (idFromQuery && isValidObjectId(idFromQuery)) ? idFromQuery : idCandidate
-          res = await fetch(`${base}/api/product/id/${idToUse}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+          try {
+            data = await fetchAPI(`/api/product/id/${idToUse}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+          } catch (error) {
+            console.log('ID fetch failed, trying slug...')
+          }
         }
-        if (!res || !res.ok) {
-          res = await fetch(`${base}/api/product/slug/${slugFromPath}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+        if (!data?.product) {
+          try {
+            data = await fetchAPI(`/api/product/slug/${slugFromPath}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+          } catch (error) {
+            console.log('Slug fetch failed, trying fallback...')
+          }
         }
-        const data = await res.json()
         if (data?.product) { setProduct(normalizeProduct(data.product)); setLoading(false); return }
         // final fallback: if we didn't try id before but id exists, try it now
         if (!tryIdFirst && idFromQuery) {
-          const res2 = await fetch(`${base}/api/product/id/${idFromQuery}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
-          const data2 = await res2.json()
-          setProduct(data2.product ? normalizeProduct(data2.product) : null)
-          setLoading(false); return
+          try {
+            const data2 = await fetchAPI(`/api/product/id/${idFromQuery}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+            setProduct(data2.product ? normalizeProduct(data2.product) : null)
+            setLoading(false); return
+          } catch (error) {
+            console.log('Final ID fallback failed')
+          }
         }
         // final defensive fallback: query the list and match locally
         try {
-          const listRes = await fetch(`${base}/api/product/list`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
-          const listData = await listRes.json()
+          const listData = await fetchAPI(`/api/product/list`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
           const found = (listData?.products || []).find((p:any) => p._id === (idFromQuery || slugFromPath) || p.slug === slugFromPath)
           setProduct(found ? normalizeProduct(found) : null)
           setLoading(false)
@@ -88,6 +105,9 @@ export function ProductDetailPage() {
         setProduct(null); setLoading(false)
       }
     })();
+
+    // Cleanup timeout on unmount or dependency change
+    return () => clearTimeout(timeoutId);
   }, [hash]);
 
   // load related products (simple: latest 4)
