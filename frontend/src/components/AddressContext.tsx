@@ -47,7 +47,7 @@ export function AddressProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const token = await getToken();
-      const base = import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com';
+      const base = (import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com';
 
       const response = await fetch(`${base}/api/address/get`, {
         method: 'POST',
@@ -95,7 +95,7 @@ export function AddressProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const token = await getToken();
-      const base = import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com';
+      const base = (import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com';
 
       const response = await fetch(`${base}/api/address/add`, {
         method: 'POST',
@@ -138,7 +138,7 @@ export function AddressProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const token = await getToken();
-      const base = import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com';
+      const base = (import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com';
 
       const response = await fetch(`${base}/api/address/update`, {
         method: 'POST',
@@ -181,7 +181,7 @@ export function AddressProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const token = await getToken();
-      const base = import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com';
+      const base = (import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com';
 
       const response = await fetch(`${base}/api/address/delete`, {
         method: 'POST',
@@ -221,7 +221,7 @@ export function AddressProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const token = await getToken();
-      const base = import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com';
+      const base = (import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com';
 
       const response = await fetch(`${base}/api/address/set-default`, {
         method: 'POST',

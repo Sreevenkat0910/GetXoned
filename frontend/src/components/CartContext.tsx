@@ -124,7 +124,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const token = await getToken();
-      const base = import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com';
+      const base = (import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com';
       
       const response = await fetch(`${base}/api/cart/get`, {
         method: 'POST',
@@ -191,7 +191,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     debouncedApiCall(operationId, async () => {
       try {
         const token = await getToken();
-        const base = import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com';
+        const base = (import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com';
 
         // Add multiple quantities to backend
         for (let i = 0; i < quantity; i++) {
@@ -257,7 +257,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     debouncedApiCall(operationId, async () => {
       try {
         const token = await getToken();
-        const base = import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com';
+        const base = (import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com';
 
         // Find the cart item to get its details
         const cartItem = items.find(item => item.id === cartItemId);
@@ -329,7 +329,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     debouncedApiCall(operationId, async () => {
       try {
         const token = await getToken();
-        const base = import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com';
+        const base = (import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com';
 
         // Find the cart item to get its details
         const cartItem = items.find(item => item.id === cartItemId);
@@ -391,7 +391,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const token = await getToken();
-      const base = import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com';
+      const base = (import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com';
 
       const response = await fetch(`${base}/api/cart/clear`, {
         method: 'POST',

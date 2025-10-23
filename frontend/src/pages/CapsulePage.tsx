@@ -25,7 +25,7 @@ const CapsuleGrid = React.memo(() => {
     
     try {
       const token = await getToken().catch(() => undefined)
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com'}/api/product/current-drop`, {
+      const res = await fetch(`${(import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com'}/api/product/current-drop`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         signal: abortControllerRef.current.signal
       })
@@ -138,7 +138,7 @@ export function CapsulePage() {
     
     try {
       const token = await getToken().catch(() => undefined)
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com'}/api/drop/current`, {
+      const res = await fetch(`${(import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com'}/api/drop/current`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         signal: abortControllerRef.current.signal
       })

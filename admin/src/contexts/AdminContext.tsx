@@ -62,7 +62,7 @@ interface AdminContextType {
 
 const AdminContext = createContext(undefined);
 
-const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com'}/api`;
+const API_BASE_URL = `${(import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com'}/api`;
 
 export function AdminProvider({ children }: { children: any }) {
   const { getToken } = useAuth();

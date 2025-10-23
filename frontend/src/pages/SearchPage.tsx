@@ -113,7 +113,7 @@ export function SearchPage() {
       setError(null);
       
       const token = await getToken().catch(() => undefined);
-      const base = import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com';
+      const base = (import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com';
 
       const queryParams = new URLSearchParams({
         query: searchParams.query,

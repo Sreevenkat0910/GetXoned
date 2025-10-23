@@ -56,7 +56,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const base = import.meta.env.VITE_API_URL || 'https://getxoned.onrender.com';
+  const base = (import.meta as any).env?.VITE_API_URL || 'https://getxoned.onrender.com';
 
   const fetchOrders = useCallback(async () => {
     if (!isSignedIn || !userId) {
