@@ -24,22 +24,31 @@ const CapsuleGrid = React.memo(() => {
     }
     
     abortControllerRef.current = new AbortController()
+    const currentAbortController = abortControllerRef.current
     
     try {
       const token = await getToken().catch(() => undefined)
       const data = await fetchAPI('/api/product/current-drop', {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        signal: abortControllerRef.current.signal
+        signal: currentAbortController.signal
       })
       
-      setItems(data.products || [])
-      setCurrentDrop(data.drop)
-    } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('Failed to fetch current drop products:', error)
+      // Only update state if this request wasn't aborted
+      if (!currentAbortController.signal.aborted) {
+        setItems(data.products || [])
+        setCurrentDrop(data.drop)
       }
+    } catch (error: any) {
+      // Silently ignore abort errors - they're expected during cleanup
+      if (error?.name === 'AbortError' || error?.message?.includes('aborted')) {
+        return;
+      }
+      console.error('Failed to fetch current drop products:', error)
     } finally {
-      setLoading(false)
+      // Only set loading to false if this request wasn't aborted
+      if (!currentAbortController.signal.aborted) {
+        setLoading(false)
+      }
     }
   }, [getToken])
   
@@ -134,24 +143,31 @@ export function CapsulePage() {
     }
     
     abortControllerRef.current = new AbortController()
+    const currentAbortController = abortControllerRef.current
     
     try {
       const token = await getToken().catch(() => undefined)
       const data = await fetchAPI('/api/drop/current', {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        signal: abortControllerRef.current.signal
+        signal: currentAbortController.signal
       })
       
-      if (data.success && data.drop) {
+      // Only update state if this request wasn't aborted
+      if (!currentAbortController.signal.aborted && data.success && data.drop) {
         setCurrentDrop(data.drop)
         setBannerUrl(data.drop.bannerUrl)
       }
-    } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('Failed to fetch current drop:', error)
+    } catch (error: any) {
+      // Silently ignore abort errors - they're expected during cleanup
+      if (error?.name === 'AbortError' || error?.message?.includes('aborted')) {
+        return;
       }
+      console.error('Failed to fetch current drop:', error)
     } finally {
-      setLoading(false)
+      // Only set loading to false if this request wasn't aborted
+      if (!currentAbortController.signal.aborted) {
+        setLoading(false)
+      }
     }
   }, [getToken])
 

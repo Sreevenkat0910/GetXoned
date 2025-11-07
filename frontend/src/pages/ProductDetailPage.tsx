@@ -7,13 +7,14 @@ import { ProductCard } from '../components/ProductCard';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { useCart } from '../components/CartContext';
 import { useWishlist } from '../components/WishlistContext';
-import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Truck, RotateCcw, Shield, Star, Loader2 } from 'lucide-react';
+import { Heart, ShoppingCart, ChevronLeft, ChevronRight, Truck, RotateCcw, Shield, Star } from 'lucide-react';
 import { formatINR } from '../utils/format';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Separator } from '../components/ui/separator';
 import { useAuth } from '@clerk/clerk-react';
 import { ProductLoader } from '../components/PageLoader';
 import { fetchAPI } from '../utils/api';
+import { BundleOffers } from '../components/BundleOffers';
 
 const fallbackImages = [
   'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=1080&q=80',
@@ -417,12 +418,8 @@ export function ProductDetailPage() {
                   }`}
                   style={{ fontSize: '12px', letterSpacing: '0.15em' }}
                 >
-                  {cartLoading ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <ShoppingCart size={18} />
-                  )}
-                  {cartLoading ? 'ADDING...' : 'ADD TO CART'}
+                  {!cartLoading && <ShoppingCart size={18} />}
+                  {cartLoading ? 'Loading...' : 'ADD TO CART'}
                 </button>
 
                 <button
@@ -539,6 +536,9 @@ export function ProductDetailPage() {
               </TabsContent>
             </Tabs>
           </div>
+
+          {/* Bundle Offers */}
+          <BundleOffers currentProduct={product} />
 
           {/* Related Products */}
           <div>

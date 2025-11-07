@@ -357,8 +357,7 @@ export function AddressSelector({ selectedAddress, onAddressSelect, onAddressCha
 
       {loading ? (
         <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D04007] mx-auto"></div>
-          <p className="mt-2 opacity-70 text-[#262930]" style={{ fontSize: '12px' }}>Loading addresses...</p>
+          <p className="text-[#262930]" style={{ fontSize: '16px' }}>Loading...</p>
         </div>
       ) : addresses.length === 0 ? (
         <div className="text-center py-8">

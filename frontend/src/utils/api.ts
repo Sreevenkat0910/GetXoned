@@ -11,7 +11,12 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     }
     
     return await response.json();
-  } catch (error) {
+  } catch (error: any) {
+    // Don't log AbortError - it's expected when requests are cancelled
+    if (error?.name === 'AbortError' || error?.message?.includes('aborted')) {
+      throw error;
+    }
+    
     console.error(`API Error (${endpoint}):`, error);
     
     // Check if it's a connection error

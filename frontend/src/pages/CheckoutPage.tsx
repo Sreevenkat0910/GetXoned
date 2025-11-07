@@ -10,7 +10,7 @@ import { useAuth as useAuthContext } from '../components/AuthContext';
 import { useOrders } from '../components/OrderContext';
 import { AddressSelector } from '../components/AddressSelector';
 import { isValidEmail, isValidIndianPhone, isValidPincode } from '../utils/performance';
-import { Lock, CreditCard, Wallet, CheckCircle2, ArrowLeft, Loader2 } from 'lucide-react';
+import { Lock, CreditCard, Wallet, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { Separator } from '../components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Button } from '../components/ui/button';
@@ -606,15 +606,8 @@ Thank you for shopping with XONED!
         <main className="pt-28 pb-16">
           <div className="max-w-[600px] mx-auto px-4 md:px-8 text-center">
             <div className="frosted-glass border border-white/30 rounded-sm p-8">
-              <Loader2 size={48} className="mx-auto mb-6 text-[#D04007] animate-spin" />
-              <h1 
-                className="uppercase-headline mb-4"
-                style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 700, letterSpacing: '0.1em' }}
-              >
-                LOADING CHECKOUT
-              </h1>
-              <p className="opacity-70" style={{ fontSize: '14px' }}>
-                Please wait while we prepare your order...
+              <p className="text-[#262930]" style={{ fontSize: '16px' }}>
+                Loading...
               </p>
             </div>
           </div>
@@ -808,10 +801,7 @@ Thank you for shopping with XONED!
                       style={{ fontSize: '12px', letterSpacing: '0.15em' }}
                     >
                       {isProcessingPayment ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" />
-                          PROCESSING...
-                        </>
+                        'Loading...'
                       ) : (
                         <>
                       <Lock size={16} />

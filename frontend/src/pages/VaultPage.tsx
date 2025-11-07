@@ -312,8 +312,7 @@ export function VaultPage() {
         <div className="max-w-[1600px] mx-auto px-4 md:px-8 space-y-20">
           {loading ? (
             <div className="text-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#CC5500] mx-auto"></div>
-              <p className="text-white/70 mt-4">Loading archived collections...</p>
+              <p className="text-[#262930]" style={{ fontSize: '16px' }}>Loading...</p>
             </div>
           ) : (
             filteredDrops.map((drop, index) => (

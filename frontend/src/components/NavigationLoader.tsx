@@ -17,11 +17,45 @@ export function NavigationProvider({ children }: { children: any }) {
 
   const navigateWithLoading = (url: string) => {
     setIsLoading(true);
-    // Add a small delay to show the loading animation
-    setTimeout(() => {
-      window.location.href = url;
-    }, 300);
+    // Use hash-based navigation for hash URLs
+    if (url.startsWith('#')) {
+      // Small delay to show loading, then navigate
+      setTimeout(() => {
+        window.location.hash = url;
+        // Clear loading after navigation completes
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 100);
+      }, 300);
+    } else {
+      // Full page navigation
+      setTimeout(() => {
+        window.location.href = url;
+      }, 300);
+    }
   };
+
+  // Clear loading state on hash changes and ensure it's cleared on mount
+  useEffect(() => {
+    // Always clear loading on mount - pages should handle their own loading states
+    setIsLoading(false);
+
+    const handleHashChange = () => {
+      setIsLoading(false);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    
+    // Safety timeout - clear loading after 2 seconds max
+    const safetyTimeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      clearTimeout(safetyTimeout);
+    };
+  }, []);
 
   return (
     <NavigationContext.Provider value={{ isLoading, setLoading, navigateWithLoading }}>
@@ -29,24 +63,8 @@ export function NavigationProvider({ children }: { children: any }) {
       {isLoading && (
         <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="text-center">
-            <div className="relative">
-              {/* Outer spinning ring */}
-              <div 
-                className="rounded-full h-12 w-12 border-4 border-gray-200 border-t-[#D04007] mx-auto"
-                style={{
-                  animation: 'spin 1s linear infinite'
-                }}
-              ></div>
-              {/* Inner spinning dot */}
-              <div 
-                className="absolute top-1/2 left-1/2 w-2 h-2 bg-[#D04007] rounded-full transform -translate-x-1/2 -translate-y-1/2"
-                style={{
-                  animation: 'spin 0.5s linear infinite reverse'
-                }}
-              ></div>
-            </div>
-            <p className="mt-4 text-[#262930] opacity-70 uppercase-headline" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
-              LOADING
+            <p className="text-[#262930]" style={{ fontSize: '16px' }}>
+              Loading...
             </p>
           </div>
         </div>

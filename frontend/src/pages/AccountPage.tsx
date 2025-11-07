@@ -22,7 +22,6 @@ import {
   Clock,
   X,
   Plus,
-  Loader2
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Separator } from '../components/ui/separator';
@@ -347,8 +346,7 @@ export function AccountPage() {
                 {ordersLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="text-center">
-                      <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                      <p className="text-gray-600">Loading your orders...</p>
+                      <p className="text-[#262930]" style={{ fontSize: '16px' }}>Loading...</p>
                     </div>
                   </div>
                 ) : orders.length === 0 ? (
@@ -796,8 +794,7 @@ export function AccountPage() {
 
                 {addressesLoading ? (
                   <div className="text-center py-8">
-                    <Loader2 size={32} className="mx-auto mb-4 text-[#D04007] animate-spin" />
-                    <p className="opacity-70" style={{ fontSize: '14px' }}>Loading addresses...</p>
+                    <p className="text-[#262930]" style={{ fontSize: '16px' }}>Loading...</p>
                   </div>
                 ) : addresses.length === 0 ? (
                   <div className="text-center py-8">

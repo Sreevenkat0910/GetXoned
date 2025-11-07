@@ -3,7 +3,7 @@ import { AnnouncementBar } from '../components/AnnouncementBar';
 import { NavBar } from '../components/NavBar';
 import { Footer } from '../components/Footer';
 import { MasonryProductCard } from '../components/MasonryProductCard';
-import { Search, SlidersHorizontal, X, ChevronDown, Loader2 } from 'lucide-react';
+import { Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { Slider } from '../components/ui/slider';
 import { Checkbox } from '../components/ui/checkbox';
 import { Button } from '../components/ui/button';
@@ -246,10 +246,7 @@ export function SearchPage() {
             <div className="flex items-center gap-4">
               <span className="text-[#666]">
                 {loading ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Loading...
-                  </div>
+                  <span className="text-[#666]">Loading...</span>
                 ) : (
                   `${searchResponse?.pagination.totalProducts || 0} RESULTS`
                 )}
